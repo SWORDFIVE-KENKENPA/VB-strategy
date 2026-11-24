@@ -65,6 +65,31 @@ svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stro
 .seg button:hover{color:var(--ink)}
 .seg button.on{background:var(--yel);color:var(--navy)}
 .seg.full{display:flex;width:100%}
+.seg.mode button{min-height:32px}
+body.simple .tool{min-height:64px;font-size:12px}
+body.simple .tool svg.i{width:26px;height:26px}
+.big{min-height:52px!important;font-size:16px!important}
+.mbar{display:none}
+.ls{display:none}
+@media (max-width:430px){.ll{display:none}.ls{display:inline}#redoBtn{display:none}}
+body.magnet .tools,body.magnet .viewbar,body.magnet .frames,body.magnet .panel{display:none}
+body.magnet .app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);height:calc(100dvh - 60px - var(--safe-t))}
+body.magnet .stage{background:var(--navy)}
+body.magnet .courtwrap{margin:12px calc(12px + var(--safe-r)) calc(12px + var(--safe-b)) calc(12px + var(--safe-l));border-radius:20px;border:7px solid #c3ccd8;box-shadow:inset 0 0 0 2px #8e9aab,0 10px 30px rgba(0,0,0,.45);background:#062a57;overflow:hidden}
+body.magnet .courtwrap{display:flex;flex-direction:column}
+body.magnet #court{position:relative;flex:1;min-height:0}
+body.magnet .mbar{display:flex;flex:none;order:2;align-items:center;justify-content:center;gap:8px;padding:10px;flex-wrap:wrap;background:#c3ccd8;color:var(--navy);z-index:2}
+.mbar .mb{min-height:52px;min-width:52px;padding:0 14px;border-radius:12px;background:#fff;color:var(--navy);font-weight:800;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 2px 0 #8e9aab}
+.mbar .mb.on{background:var(--navy);color:var(--yel)}
+.mbar .mb:disabled{opacity:.4}
+.mbar .msw{width:40px;height:40px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 0 #8e9aab}
+.mbar .msw.on{outline:3px solid var(--navy);outline-offset:2px}
+.mbar .rot{display:inline-flex;align-items:center;background:#fff;border-radius:12px;box-shadow:0 2px 0 #8e9aab;min-height:52px}
+.mbar .rot b{min-width:76px;text-align:center;font-size:15px}
+.mbar .rot button{min-width:46px;min-height:52px;font-size:20px;font-weight:900;color:var(--navy)}
+.mbar select{width:auto;height:52px;background:#fff;color:var(--navy);border:0;font-weight:800;box-shadow:0 2px 0 #8e9aab}
+.mbar .vr{width:2px;height:36px;background:#8e9aab}
+@media (max-width:600px){body.magnet .courtwrap{margin:6px;border-width:5px}body.magnet .mbar{gap:6px;padding:8px}.mbar .mb{min-height:46px;min-width:46px;padding:0 10px;font-size:13px}.mbar .vr{display:none}.mbar .rot,.mbar .rot button,.mbar select{min-height:46px;height:46px}}
 .seg.g2{display:grid;grid-template-columns:1fr 1fr}
 .seg.full button{flex:1}
 .courtwrap{position:relative;flex:1;min-height:260px}
@@ -139,7 +164,14 @@ kbd{background:var(--navy2);border:1px solid var(--line);border-radius:4px;paddi
 @media (max-width:600px){
  .top{gap:6px;padding-inline:10px}
  .brand small,.brand b,.docname input,#fsBtn{display:none}
- .acts{flex:1;justify-content:flex-end}
+ .acts{flex:1;justify-content:flex-end;gap:4px}
+ .seg.mode{flex-wrap:nowrap;flex:none}
+ .seg.mode button{padding:0 7px;font-size:12px}
+}
+@media (max-width:430px){
+ .brand{display:none}
+ .top{padding-inline:6px}
+ .acts .btn{min-width:38px}
  .docname input{font-size:15px;padding:4px 6px}
  .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(420px,68dvh) auto}
  .tools{flex-direction:row;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden;padding:6px}
@@ -157,6 +189,7 @@ kbd{background:var(--navy2);border:1px solid var(--line);border-radius:4px;paddi
  </div>
  <div class="docname"><input id="docName" type="text" aria-label="作戦名" maxlength="40"></div>
  <div class="acts">
+  <div class="seg mode" id="modeSeg" role="group" aria-label="表示モード"><button data-mode="magnet"><span class="ll">マグネット</span><span class="ls">磁石</span></button><button data-mode="simple">シンプル</button><button data-mode="pro">プロ</button></div>
   <button class="btn ic" id="undoBtn" title="元に戻す (Ctrl+Z)" aria-label="元に戻す"></button>
   <button class="btn ic" id="redoBtn" title="やり直し (Ctrl+Shift+Z)" aria-label="やり直し"></button>
   <button class="btn" id="libBtn" title="作戦ライブラリ"><span data-ico="lib"></span><span class="lbl">ライブラリ</span></button>
@@ -171,7 +204,7 @@ kbd{background:var(--navy2);border:1px solid var(--line);border-radius:4px;paddi
  <nav class="tools" id="tools" aria-label="ツール"></nav>
  <section class="stage">
   <div class="viewbar" id="viewbar"></div>
-  <div class="courtwrap"><svg id="court" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="バレーボールコート"><g id="world"><g id="floor"></g><g id="overlay"></g><g id="draws"></g><g id="tokens"></g><g id="preview"></g></g></svg></div>
+  <div class="courtwrap"><div class="mbar" id="mbar"></div><svg id="court" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="バレーボールコート"><g id="world"><g id="floor"></g><g id="overlay"></g><g id="draws"></g><g id="tokens"></g><g id="preview"></g></g></svg></div>
   <div class="frames" id="frames"></div>
  </section>
  <aside class="panel">
@@ -364,7 +397,7 @@ function newDoc(){
 }
 let doc=store.get('vbtb.current',null);
 if(!doc||!doc.frames||!doc.frames.length)doc=newDoc();
-const ui=Object.assign({tool:'select',color:YEL,dash:false,tab:'set',view:'full',vertical:false,showOpp:true,label:'role',zones:true,approach:true,check:true,speed:1,loop:false,libId:null},store.get('vbtb.ui',{}));
+const ui=Object.assign({showNum:true,simple:false,tool:'select',color:YEL,dash:false,tab:'set',view:'full',vertical:false,showOpp:true,label:'role',zones:true,approach:true,check:true,speed:1,loop:false,libId:null},store.get('vbtb.ui',{}));
 if(innerWidth<600&&!store.get('vbtb.ui',null))ui.vertical=true;
 ui.tool='select';
 const hist=[],redo=[];
@@ -374,22 +407,27 @@ function save(){clearTimeout(saveT);saveT=setTimeout(()=>{store.set('vbtb.curren
 function push(){hist.push(JSON.stringify(doc));if(hist.length>80)hist.shift();redo.length=0;updUndo();}
 function undo(){if(!hist.length)return;redo.push(JSON.stringify(doc));doc=JSON.parse(hist.pop());renderAll();save();}
 function redoF(){if(!redo.length)return;hist.push(JSON.stringify(doc));doc=JSON.parse(redo.pop());renderAll();save();}
-function updUndo(){$('#undoBtn').disabled=!hist.length;$('#redoBtn').disabled=!redo.length;}
+function updUndo(){$('#undoBtn').disabled=!hist.length;$('#redoBtn').disabled=!redo.length;const u=document.querySelector('[data-ma="undo"]');if(u)u.disabled=!hist.length;}
 
 /* ---------- コート描画 ---------- */
 const svg=$('#court'),world=$('#world');
 const VB={h:{full:'-3 -2 24 13',own:'-3 -2 13.6 13',opp:'7.4 -2 13.6 13'},v:{full:'-2 -3 13 24',own:'-2 7.4 13 13.6',opp:'-2 -3 13 13.6'}};
 const R=()=>ui.vertical?90:0;
+const SIMPLE_TOOLS=['select','pen','arrow','erase'];
+if(!ui.mode)ui.mode=ui.simple?'simple':'pro';
+function setModeFlags(){ui.simple=ui.mode!=='pro';ui.magnet=ui.mode==='magnet';}setModeFlags();
+const useCheck=()=>ui.check&&!ui.simple,useAppr=()=>ui.approach&&!ui.simple;
 const txt=(x,y,s,a='')=>`<text transform="translate(${x} ${y}) rotate(${R()})" ${a}>${s}</text>`;
 const FONT=`font-family="Hiragino Sans,Noto Sans JP,Meiryo,sans-serif"`;
 function renderFloor(){
- svg.setAttribute('viewBox',VB[ui.vertical?'v':'h'][ui.view]);
+ svg.setAttribute('viewBox',ui.magnet?(ui.vertical?'-1.4 -2.1 11.8 22.2':'-2.1 -1.4 22.2 11.8'):VB[ui.vertical?'v':'h'][ui.view]);
  world.setAttribute('transform',ui.vertical?'matrix(0,-1,1,0,0,18)':'');
  let s=`<rect x="-4" y="-3" width="26" height="15" fill="#082a55"/>
  <rect x="0" y="0" width="18" height="9" fill="#11417c"/><rect x="6" y="0" width="6" height="9" fill="#17508f"/>
  <g stroke="#fff" stroke-width=".05" fill="none"><rect x="0" y="0" width="18" height="9"/><line x1="6" y1="0" x2="6" y2="9"/><line x1="12" y1="0" x2="12" y2="9"/></g>
  <g stroke="#fff" stroke-width=".05" stroke-dasharray=".15 .2" opacity=".7"><line x1="6" y1="-1.75" x2="6" y2="0"/><line x1="12" y1="-1.75" x2="12" y2="0"/><line x1="6" y1="9" x2="6" y2="10.75"/><line x1="12" y1="9" x2="12" y2="10.75"/></g>`;
- if(ui.zones){
+ s+=`<defs><radialGradient id="mgY" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fffbb0"/><stop offset=".45" stop-color="${YEL}"/><stop offset="1" stop-color="#b8ab00"/></radialGradient><radialGradient id="mgW" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#f1f3f6"/><stop offset="1" stop-color="#aeb6c2"/></radialGradient><radialGradient id="mgN" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#2a5a9a"/><stop offset=".5" stop-color="${NAVY}"/><stop offset="1" stop-color="#000d1f"/></radialGradient><radialGradient id="mgR" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#ffb3b5"/><stop offset=".5" stop-color="${RED}"/><stop offset="1" stop-color="#a8262b"/></radialGradient></defs>`;
+ if(ui.zones&&!ui.magnet){
   s+=`<g stroke="#fff" stroke-width=".025" stroke-dasharray=".12 .14" opacity=".35"><line x1="3" y1="0" x2="3" y2="9"/><line x1="15" y1="0" x2="15" y2="9"/><line x1="0" y1="3" x2="18" y2="3"/><line x1="0" y1="6" x2="18" y2="6"/></g><g fill="#fff" opacity=".22" font-size="1.1" font-weight="800" text-anchor="middle" dominant-baseline="central" ${FONT}>`;
   for(const z in LANE){const[x,y]=LANE[z];const zx=z>=2&&z<=4?7.5:1.5;s+=txt(zx,y,z)+txt(18-zx,9-y,z);}
   s+='</g>';
@@ -399,7 +437,15 @@ function renderFloor(){
  <g font-size=".5" font-weight="700" ${FONT} text-anchor="middle" dominant-baseline="central">${txt(4.5,-1.15,esc(doc.teams.own.name),`fill="${YEL}"`)}${ui.showOpp?txt(13.5,-1.15,esc(doc.teams.opp.name),'fill="#fff"'):''}</g>`;
  $('#floor').innerHTML=s;
 }
+function magnetSVG(e,tk,p){
+ const own=tk==='own',lib=e.role==='L';const g=own?(lib?'mgN':'mgY'):(lib?'mgR':'mgW');const tc=own?(lib?YEL:NAVY):(lib?'#fff':NAVY);const rim=own?(lib?YEL:'#9c9000'):(lib?'#fff':RED);
+ return `<g data-tok="${e.id}" transform="translate(${p[0]} ${p[1]}) rotate(${R()})" ${FONT}><circle r=".7" fill="transparent"/>
+  <ellipse cx=".07" cy=".12" rx=".6" ry=".6" fill="#000" opacity=".35"/><circle r=".58" fill="url(#${g})" stroke="${rim}" stroke-width=".06"/>
+  <circle r=".44" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width=".03"/>
+  ${ui.showNum?'':'<!--'}<text y="${r2((String(e.num).length>2?.4:.52)*.335)}" font-size="${String(e.num).length>2?.4:.52}" font-weight="900" fill="${tc}" text-anchor="middle">${esc(e.num)}</text>${ui.showNum?'':'-->'}</g>`;
+}
 function tokenSVG(e,tk,p,flag){
+ if(ui.magnet)return magnetSVG(e,tk,p);
  const own=tk==='own',lib=e.role==='L';
  const fill=own?(lib?NAVY:YEL):(lib?RED:'#fff'),stroke=own?(lib?YEL:'#fff'):(lib?'#fff':RED),tc=own?(lib?YEL:NAVY):(lib?'#fff':NAVY);
  const sub=ui.label==='name'?(e.name||ROLES[e.eff]||''):ui.label==='role'?(e.isSetter?'S':e.eff):'';
@@ -408,16 +454,16 @@ function tokenSVG(e,tk,p,flag){
   <circle r=".62" fill="transparent"/><circle cx=".04" cy=".07" r=".46" fill="#000" opacity=".3"/>
   <circle r=".46" fill="${fill}" stroke="${stroke}" stroke-width=".07"/>
   ${e.isSetter?`<circle cx=".36" cy="-.34" r=".14" fill="${own?NAVY:RED}" stroke="${own?YEL:'#fff'}" stroke-width=".04"/>`:''}
-  <text y=".02" font-size="${String(e.num).length>2?.32:.42}" font-weight="800" fill="${tc}" text-anchor="middle" dominant-baseline="central">${esc(e.num)}</text>
+  ${ui.showNum?`<text y="${r2((String(e.num).length>2?.32:.42)*.36)}" font-size="${String(e.num).length>2?.32:.42}" font-weight="800" fill="${tc}" text-anchor="middle">${esc(e.num)}</text>`:''}
   ${sub?`<text y=".8" font-size=".3" font-weight="700" fill="#fff" stroke="${NAVY}" stroke-width=".09" paint-order="stroke" text-anchor="middle" dominant-baseline="central">${esc(sub)}</text>`:''}</g>`;
 }
 function renderTokens(Fr,pos){
  Fr=Fr||F();pos=pos||Fr.pos;
  let need=false;const teams=ui.showOpp?['opp','own']:['own'];let s='';
- const bad=new Set();if(ui.check)for(const tk of teams){const r=faults(tk,Fr,pos);if(r)r.list.forEach(f=>{bad.add(f.a.id);bad.add(f.b.id);});}
+ const bad=new Set();if(useCheck())for(const tk of teams){const r=faults(tk,Fr,pos);if(r)r.list.forEach(f=>{bad.add(f.a.id);bad.add(f.b.id);});}
  for(const tk of teams){const{E}=teamCtx(tk,Fr);for(const e of E){if(!pos[e.id]){need=true;continue;}s+=tokenSVG(e,tk,pos[e.id],bad.has(e.id));}}
  if(need&&pos===Fr.pos){const tmp=clone(Fr);applyAuto(tmp);for(const id in tmp.pos)if(!Fr.pos[id])Fr.pos[id]=tmp.pos[id];return renderTokens(Fr);}
- const b=pos.ball;if(b)s+=`<g data-tok="ball" transform="translate(${b[0]} ${b[1]})"><circle r=".55" fill="transparent"/><circle r=".24" fill="#fff" stroke="${NAVY}" stroke-width=".04"/><path d="M-.24 0a.24 .24 0 0 0 .48 0M0 -.24c-.12 .1-.12 .38 0 .48M-.2 -.13c.1 .1 .3 .1 .4 0" fill="none" stroke="${YEL}" stroke-width=".045"/></g>`;
+ const b=pos.ball;if(b)s+=`<g data-tok="ball" transform="translate(${b[0]} ${b[1]})"><circle r=".55" fill="transparent"/><circle r="${ui.magnet?.36:.24}" fill="#fff" stroke="${NAVY}" stroke-width=".04"/><path d="M-.24 0a.24 .24 0 0 0 .48 0M0 -.24c-.12 .1-.12 .38 0 .48M-.2 -.13c.1 .1 .3 .1 .4 0" fill="none" stroke="${YEL}" stroke-width=".045"/></g>`;
  $('#tokens').innerHTML=s;
 }
 function headPts(a,b,L=.5,W=.27){const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,bx=b[0]-ux*L,by=b[1]-uy*L;
@@ -435,14 +481,14 @@ function shape(d,i){
 function renderDraws(Fr){Fr=Fr||F();$('#draws').innerHTML=Fr.draws.map((d,i)=>shape(d,i)).join('');}
 function renderOverlay(Fr,pos){
  Fr=Fr||F();pos=pos||Fr.pos;let s='';const teams=ui.showOpp?['own','opp']:['own'];
- if(ui.approach)for(const tk of teams)for(const a of approaches(tk,Fr,pos)){
+ if(useAppr())for(const tk of teams)for(const a of approaches(tk,Fr,pos)){
   const p=pos[a.id];if(!p)continue;const col=tk==='own'?YEL:'#fff';const h=headPts(p,a.hit,.38,.2);
   s+=`<line x1="${p[0]}" y1="${p[1]}" x2="${h.base[0]}" y2="${h.base[1]}" stroke="${col}" stroke-width=".06" stroke-dasharray=".14 .12" opacity=".85"/><polygon points="${h.pts}" fill="${col}" opacity=".85"/><circle cx="${a.hit[0]}" cy="${a.hit[1]}" r=".16" fill="none" stroke="${col}" stroke-width=".05"/>`;
   const st=a.setter&&pos[a.setter];if(st)s+=`<line x1="${st[0]}" y1="${st[1]}" x2="${a.hit[0]}" y2="${a.hit[1]}" stroke="#fff" stroke-width=".025" opacity=".35"/>`;
   const lx=a.hit[0]+(tk==='own'?-.2:.2),ly=a.hit[1]-.42;
   s+=`<g font-size=".3" font-weight="700" ${FONT} text-anchor="middle" dominant-baseline="central">${txt(r2(lx),r2(ly),esc(a.label),`fill="${col}" stroke="${NAVY}" stroke-width=".08" paint-order="stroke"`)}</g>`;
  }
- if(ui.check)for(const tk of teams){const r=faults(tk,Fr,pos);if(!r)continue;for(const f of r.list){const a=pos[f.a.id],b=pos[f.b.id];if(a&&b)s+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${RED}" stroke-width=".07" stroke-dasharray=".2 .12"/>`;}}
+ if(useCheck())for(const tk of teams){const r=faults(tk,Fr,pos);if(!r)continue;for(const f of r.list){const a=pos[f.a.id],b=pos[f.b.id];if(a&&b)s+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${RED}" stroke-width=".07" stroke-dasharray=".2 .12"/>`;}}
  $('#overlay').innerHTML=s;
 }
 function renderCheck(){
@@ -457,8 +503,8 @@ function renderCheck(){
 function renderViewbar(){
  const Fr=F(),{E}=teamCtx('own',Fr),st=E.find(e=>e.isSetter);
  const fr=['own','opp'].map(tk=>faults(tk,Fr,Fr.pos)).filter(Boolean),nb=fr.reduce((n,r)=>n+r.list.length,0);
- $('#viewbar').innerHTML=`<span class="chip y">${PHASES[Fr.phase]}</span><span class="chip">ローテ ${Fr.rot.own+1}${st?`・S${st.pos}`:''}</span><span class="chip">相手 ローテ ${Fr.rot.opp+1}</span>
- ${ui.check&&fr.length?(nb?`<span class="chip r">反則のおそれ ${nb}</span>`:'<span class="chip g">位置OK</span>'):''}<span class="grow"></span>
+ $('#viewbar').innerHTML=`<span class="chip y">${PHASES[Fr.phase]}</span><span class="chip">ローテ ${Fr.rot.own+1}${st?`・S${st.pos}`:''}</span>${ui.simple?'':`<span class="chip">相手 ローテ ${Fr.rot.opp+1}</span>`}
+ ${useCheck()&&fr.length?(nb?`<span class="chip r">反則のおそれ ${nb}</span>`:'<span class="chip g">位置OK</span>'):''}<span class="grow"></span>
  <div class="seg" role="group" aria-label="表示範囲">${[['full','全面'],['own','自陣'],['opp','相手陣']].map(([v,l])=>`<button data-view="${v}" class="${ui.view===v?'on':''}">${l}</button>`).join('')}</div>
  <div class="seg" role="group" aria-label="向き"><button data-orient="h" class="${ui.vertical?'':'on'}">横</button><button data-orient="v" class="${ui.vertical?'on':''}">縦</button></div>`;
 }
@@ -468,21 +514,30 @@ function renderFrames(){
  <button class="btn ic" data-fact="dup" title="現在のフレームを複製して追加" aria-label="フレーム追加">${ico('plus')}</button>
  <button class="btn ic" data-fact="del" title="フレーム削除" aria-label="フレーム削除" ${doc.frames.length<2?'disabled':''}>${ico('trash')}</button>
  <span class="grow"></span>
- <select id="speed" aria-label="再生速度">${[.5,.75,1,1.5,2].map(v=>`<option value="${v}" ${ui.speed==v?'selected':''}>${v}x</option>`).join('')}</select>
- <label class="chip" style="cursor:pointer"><input type="checkbox" id="loop" ${ui.loop?'checked':''} style="accent-color:${YEL}">ループ</label>`;
+ ${ui.simple?'':`<select id="speed" aria-label="再生速度">${[.5,.75,1,1.5,2].map(v=>`<option value="${v}" ${ui.speed==v?'selected':''}>${v}x</option>`).join('')}</select>
+ <label class="chip" style="cursor:pointer"><input type="checkbox" id="loop" ${ui.loop?'checked':''} style="accent-color:${YEL}">ループ</label>`}`;
 }
 function renderTools(){
  const T=[['select','選択',`V`],['pen','ペン','P'],['arrow','矢印','A'],['ball','ボール軌道','B'],['zone','エリア','Z'],['text','文字','T'],['erase','消しゴム','E']];
- $('#tools').innerHTML=T.map(([k,l,s])=>`<button class="tool ${ui.tool===k?'on':''}" data-tool="${k}" title="${l} (${s})">${ico(k)}<span>${l.length>4?'軌道':l}</span></button>`).join('')+
- `<div class="sep"></div>`+[YEL,'#FFFFFF',RED,'#4FC3F7','#7CFC9A'].map(c=>`<button class="sw ${ui.color===c?'on':''}" data-color="${c}" style="background:${c}" aria-label="色 ${c}"></button>`).join('')+
- `<button class="tool ${ui.dash?'on':''}" data-dash="1" title="点線の切り替え">${ico('dash')}<span>点線</span></button><div class="sep"></div><button class="tool" data-clear="1" title="このフレームの描画を全消去">${ico('trash')}<span>全消去</span></button>`;
+ const TT=ui.simple?T.filter(t=>SIMPLE_TOOLS.includes(t[0])):T;const CL=ui.simple?[YEL,'#FFFFFF',RED]:[YEL,'#FFFFFF',RED,'#4FC3F7','#7CFC9A'];
+ $('#tools').innerHTML=TT.map(([k,l,s])=>`<button class="tool ${ui.tool===k?'on':''}" data-tool="${k}" title="${l} (${s})">${ico(k)}<span>${l.length>4?'軌道':l}</span></button>`).join('')+
+ `<div class="sep"></div>`+CL.map(c=>`<button class="sw ${ui.color===c?'on':''}" data-color="${c}" style="background:${c}" aria-label="色 ${c}"></button>`).join('')+
+ (ui.simple?'':`<button class="tool ${ui.dash?'on':''}" data-dash="1" title="点線の切り替え">${ico('dash')}<span>点線</span></button>`)+`<div class="sep"></div><button class="tool" data-clear="1" title="このフレームの描画を全消去">${ico('trash')}<span>全消去</span></button>`;
  svg.classList.toggle('draw',ui.tool!=='select');
 }
 const sel=(k,opts,v)=>`<select data-s="${k}">${opts.map(([a,b])=>`<option value="${a}" ${String(v)===String(a)?'selected':''}>${b}</option>`).join('')}</select>`;
 function renderPanel(){
  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===ui.tab));
  const Fr=F(),S=doc.settings,el=$('#pbody');
- if(ui.tab==='set'){
+ if(ui.tab==='set'&&ui.simple){
+  const{E}=teamCtx('own',Fr),st=E.find(e=>e.isSetter);
+  el.innerHTML=`<div class="sec"><h3>局面</h3><div class="seg full g2">${Object.keys(PHASES).map(p=>`<button class="big ${Fr.phase===p?'on':''}" data-phase="${p}">${PHASES[p]}</button>`).join('')}</div><p class="hint">${PHASE_SUB[Fr.phase]}</p></div>
+  <div class="sec"><h3>ローテーション ${st?`<span class="chip y">セッター P${st.pos}</span>`:''}</h3><div class="seg full">${[0,1,2,3,4,5].map(k=>`<button class="big ${Fr.rot.own===k?'on':''}" data-rot="own" data-k="${k}">${k+1}</button>`).join('')}</div>
+  <div class="btnrow" style="margin-top:8px"><button class="btn big" data-act="rotate">${ico('rot')}ローテを回す</button></div></div>
+  <div class="sec btnrow"><button class="btn big" data-act="auto">${ico('auto')}基本配置に戻す</button></div>
+  <div class="sec"><h3>メモ</h3><textarea id="note" placeholder="例：相手4番のクロスを警戒">${esc(Fr.note)}</textarea></div>
+  <p class="hint">選手を指でドラッグして動かし、ペンや矢印で指示を書き込めます。戦術の細かい設定や反則チェックは「プロ」で使えます。</p>`;
+ }else if(ui.tab==='set'){
   const{E}=teamCtx('own',Fr),st=E.find(e=>e.isSetter);
   el.innerHTML=`<div class="sec"><h3>局面（自チーム視点）</h3><div class="seg full g2">${Object.keys(PHASES).map(p=>`<button data-phase="${p}" class="${Fr.phase===p?'on':''}" title="${PHASE_SUB[p]}">${PHASES[p]}</button>`).join('')}</div><p class="hint">${PHASE_SUB[Fr.phase]}／相手：${PHASES[OPP_PHASE[Fr.phase]]}</p></div>
   <div class="sec"><h3>自チームのローテーション ${st?`<span class="chip y">セッター P${st.pos}</span>`:''}</h3><div class="btnrow"><div class="seg six">${[0,1,2,3,4,5].map(k=>`<button data-rot="own" data-k="${k}" class="${Fr.rot.own===k?'on':''}">${k+1}</button>`).join('')}</div><button class="btn" data-act="rotate" title="時計回りに1つ回す">${ico('rot')}回す</button></div></div>
@@ -511,24 +566,27 @@ function renderPanel(){
  }else{
   const tg=(k,l,h)=>`<label class="tg"><span>${l}${h?`<br><small style="color:var(--mut)">${h}</small>`:''}</span><input type="checkbox" data-u="${k}" ${ui[k]?'checked':''}></label>`;
   el.innerHTML=`<div class="sec"><h3>選手駒のラベル</h3><div class="seg full">${[['num','背番号のみ'],['role','役割'],['name','名前']].map(([v,l])=>`<button data-label="${v}" class="${ui.label===v?'on':''}">${l}</button>`).join('')}</div></div>
-  <div class="sec">${tg('showOpp','相手チームを表示')}${tg('approach','助走・攻撃ラインを表示','攻撃の局面で各アタッカーの打点とテンポを表示')}${tg('check','ポジショナルフォールトを判定','反則の組み合わせを赤い点線で表示')}${tg('zones','ゾーン番号と区画線')}</div>
+  <div class="sec">${tg('showNum','駒に背番号を表示')}${tg('showOpp','相手チームを表示')}${ui.simple?'':tg('approach','助走・攻撃ラインを表示','攻撃の局面で各アタッカーの打点とテンポを表示')+tg('check','ポジショナルフォールトを判定','反則の組み合わせを赤い点線で表示')}${tg('zones','ゾーン番号と区画線')}</div>
   <div class="sec"><h3>凡例</h3><div class="card" style="display:grid;gap:6px">
    <span><b style="color:${YEL}">●</b> 自チーム　<b style="color:${YEL};-webkit-text-stroke:0">◎</b> 自リベロ（紺）　<b style="color:#fff">●</b> 相手　<b style="color:${RED}">●</b> 相手リベロ</span>
    <span>右上の小さな丸 … ボールを上げるセッター</span><span>点線矢印 … 助走と打点、細線 … セッターからのトス</span></div></div>`;
  }
 }
 function renderBoard(){renderFloor();renderDraws();renderTokens();renderOverlay();renderViewbar();renderCheck();}
-function renderAll(){$('#docName').value=doc.name;renderTools();renderBoard();renderFrames();renderPanel();updUndo();}
+function renderAll(){$('#docName').value=doc.name;document.body.classList.toggle('simple',ui.simple);document.body.classList.toggle('magnet',ui.magnet);document.querySelectorAll('#modeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.mode===ui.mode));renderMbar();renderTools();renderBoard();renderFrames();renderPanel();updUndo();}
 
 /* ---------- 操作 ---------- */
 function toWorld(e){const m=world.getScreenCTM().inverse();const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m);return[r2(p.x),r2(p.y)];}
 const clampP=p=>[r2(Math.max(-2.8,Math.min(20.8,p[0]))),r2(Math.max(-1.8,Math.min(10.8,p[1])))];
 let drag=null,drawing=null,erasing=false,playing=null;
+const lift=()=>ui.magnet?' scale(1.14)':'';
+function liftTok(id){const g=svg.querySelector(`[data-tok="${id}"]`);if(!g)return;g.parentNode.appendChild(g);if(ui.magnet)g.setAttribute('transform',g.getAttribute('transform')+lift());}
 svg.addEventListener('pointerdown',e=>{
  if(playing||e.button>0)return;const p=toWorld(e),t=ui.tool;
+ if(ui.magnet&&t!=='erase'&&t!=='select'){const tok=e.target.closest('[data-tok]');if(tok){const id=tok.dataset.tok,cur=F().pos[id];drag={kind:'tok',id,off:[p[0]-cur[0],p[1]-cur[1]],moved:false};push();svg.setPointerCapture(e.pointerId);liftTok(id);return;}}
  if(t==='select'){
   const tok=e.target.closest('[data-tok]');
-  if(tok){const id=tok.dataset.tok,cur=F().pos[id];drag={kind:'tok',id,off:[p[0]-cur[0],p[1]-cur[1]],moved:false};push();svg.setPointerCapture(e.pointerId);return;}
+  if(tok){const id=tok.dataset.tok,cur=F().pos[id];drag={kind:'tok',id,off:[p[0]-cur[0],p[1]-cur[1]],moved:false};push();svg.setPointerCapture(e.pointerId);liftTok(id);return;}
   const dr=e.target.closest('[data-draw]');
   if(dr){drag={kind:'draw',i:+dr.dataset.draw,last:p,moved:false};push();svg.setPointerCapture(e.pointerId);}
   return;
@@ -541,7 +599,7 @@ svg.addEventListener('pointerdown',e=>{
 svg.addEventListener('pointermove',e=>{
  if(drag){const p=toWorld(e);drag.moved=true;const Fr=F();
   if(drag.kind==='tok'){Fr.pos[drag.id]=clampP([p[0]-drag.off[0],p[1]-drag.off[1]]);
-   const g=svg.querySelector(`[data-tok="${drag.id}"]`);if(g)g.setAttribute('transform',`translate(${Fr.pos[drag.id][0]} ${Fr.pos[drag.id][1]})${drag.id==='ball'?'':` rotate(${R()})`}`);
+   const g=svg.querySelector(`[data-tok="${drag.id}"]`);if(g)g.setAttribute('transform',`translate(${Fr.pos[drag.id][0]} ${Fr.pos[drag.id][1]})${drag.id==='ball'?'':` rotate(${R()})`}${lift()}`);
    renderOverlay();}
   else{const d=Fr.draws[drag.i],dx=p[0]-drag.last[0],dy=p[1]-drag.last[1];drag.last=p;const mv=q=>[r2(q[0]+dx),r2(q[1]+dy)];
    if(d.pts)d.pts=d.pts.map(mv);if(d.a){d.a=mv(d.a);d.b=mv(d.b);}if(d.p)d.p=mv(d.p);renderDraws();}
@@ -550,7 +608,7 @@ svg.addEventListener('pointermove',e=>{
  if(drawing){const p=toWorld(e);if(drawing.t==='pen'){const l=drawing.pts[drawing.pts.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>.08)drawing.pts.push(p);}else drawing.b=p;$('#preview').innerHTML=shape(drawing,null);}
 });
 function endPointer(){
- if(drag){if(!drag.moved){hist.pop();updUndo();}else{renderTokens();renderViewbar();renderCheck();save();}drag=null;}
+ if(drag){if(!drag.moved){hist.pop();updUndo();renderTokens();}else{renderTokens();renderViewbar();renderCheck();save();}drag=null;}
  if(erasing){if(!erasing.hit){hist.pop();updUndo();}erasing=false;save();}
  if(drawing){const d=drawing;drawing=null;$('#preview').innerHTML='';
   const ok=d.t==='pen'?d.pts.length>2:Math.hypot(d.b[0]-d.a[0],d.b[1]-d.a[1])>.35;
@@ -606,6 +664,30 @@ pb.addEventListener('change',e=>{
 });
 pb.addEventListener('input',e=>{if(e.target.id==='note'){F().note=e.target.value;save();}});
 $('#docName').addEventListener('change',e=>{doc.name=e.target.value.trim()||'無題の作戦';save();});
+$('#modeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const m=b.dataset.mode;if(m===ui.mode)return;
+ ui.mode=m;setModeFlags();if(ui.simple&&!SIMPLE_TOOLS.includes(ui.tool))ui.tool='select';if(ui.magnet&&ui.tool==='arrow')ui.tool='select';if(playing)stop();renderAll();save();
+ toast({magnet:'マグネット：コートと磁石だけ。指で動かしてペンで書き込めます',simple:'シンプル表示：よく使う機能だけを大きく表示します',pro:'プロ表示：すべての戦術機能を使えます'}[m]);});
+function renderMbar(){
+ if(!ui.magnet){$('#mbar').innerHTML='';return;}const Fr=F();
+ $('#mbar').innerHTML=`<button class="mb ${ui.tool==='select'?'on':''}" data-mt="select">${ico('select')}動かす</button><button class="mb ${ui.tool==='pen'?'on':''}" data-mt="pen">${ico('pen')}ペン</button><button class="mb ${ui.tool==='erase'?'on':''}" data-mt="erase">${ico('erase')}消す</button>
+ ${[YEL,'#FFFFFF',RED].map(c=>`<button class="msw ${ui.color===c?'on':''}" data-mc="${c}" style="background:${c}" aria-label="ペンの色"></button>`).join('')}<span class="vr"></span>
+ <div class="rot"><button data-mr="-1" aria-label="前のローテ">‹</button><b>ローテ ${Fr.rot.own+1}</b><button data-mr="1" aria-label="次のローテ">›</button></div>
+ <select id="mPhase" aria-label="局面">${Object.keys(PHASES).map(k=>`<option value="${k}" ${Fr.phase===k?'selected':''}>${PHASES[k]}</option>`).join('')}</select><span class="vr"></span>
+ <button class="mb" data-ma="undo" ${hist.length?'':'disabled'} aria-label="元に戻す">${ico('undo')}</button><button class="mb" data-ma="wipe">${ico('trash')}全部消す</button><button class="mb" data-ma="reset">${ico('auto')}並べ直す</button>
+ <button class="mb ${ui.showNum?'on':''}" data-ma="num" aria-pressed="${ui.showNum}">番号</button><button class="mb ${ui.showOpp?'on':''}" data-ma="opp">相手</button><button class="mb" data-ma="orient" aria-label="ボードの向き">${ico('rot')}${ui.vertical?'縦':'横'}</button>`;
+}
+$('#mbar').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const Fr=F();
+ if(b.dataset.mt){ui.tool=b.dataset.mt;svg.classList.toggle('draw',ui.tool!=='select');}
+ else if(b.dataset.mc){ui.color=b.dataset.mc;if(ui.tool!=='pen')ui.tool='pen';svg.classList.add('draw');}
+ else if(b.dataset.mr){push();Fr.rot.own=(Fr.rot.own+(+b.dataset.mr)+6)%6;applyAuto(Fr);renderBoard();}
+ else if(b.dataset.ma==='undo'){undo();}
+ else if(b.dataset.ma==='wipe'){if(!Fr.draws.length)return toast('消す書き込みはありません');push();Fr.draws=[];renderDraws();toast('書き込みを消しました（↶で戻せます）');}
+ else if(b.dataset.ma==='reset'){push();applyAuto(Fr);renderBoard();toast('ローテ'+(Fr.rot.own+1)+'の基本位置に並べ直しました');}
+ else if(b.dataset.ma==='num'){ui.showNum=!ui.showNum;renderTokens();toast(ui.showNum?'背番号を表示しました':'背番号を非表示にしました');}
+ else if(b.dataset.ma==='opp'){ui.showOpp=!ui.showOpp;renderBoard();}
+ else if(b.dataset.ma==='orient'){ui.vertical=!ui.vertical;renderBoard();}
+ renderMbar();save();});
+$('#mbar').addEventListener('change',e=>{if(e.target.id==='mPhase'){push();F().phase=e.target.value;applyAuto(F());renderBoard();renderMbar();save();}});
 $('#undoBtn').onclick=undo;$('#redoBtn').onclick=redoF;
 
 /* ---------- 再生 ---------- */
@@ -705,7 +787,8 @@ $('#helpBtn').onclick=()=>modal('使い方',`<div class="help">
 <h4>3. 駒を動かす・描き込む</h4><ul><li><kbd>V</kbd> 選択：選手・ボール・描いた線をドラッグ</li><li><kbd>P</kbd> ペン／<kbd>A</kbd> 矢印（動き）／<kbd>B</kbd> ボール軌道／<kbd>Z</kbd> エリア／<kbd>T</kbd> 文字／<kbd>E</kbd> 消しゴム</li></ul>
 <h4>4. 動きをアニメーションに</h4><p>＋でフレームを複製して選手を動かすか、「次の局面を追加」で自動生成。<kbd>Space</kbd> または ▶ で再生します。</p>
 <h4>5. 反則チェック</h4><p>サーブレシーブ／サーブの局面では、前後・左右の位置関係（ポジショナルフォールト）を自動判定し、反則の組み合わせを赤い点線で示します。</p>
-<h4>ショートカット</h4><p><kbd>Ctrl</kbd>+<kbd>Z</kbd> 元に戻す　<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> やり直し　<kbd>←</kbd><kbd>→</kbd> フレーム移動　<kbd>R</kbd> ローテを回す</p>
+<h4>マグネット／シンプル／プロの切り替え</h4><p>画面上部のスイッチで切り替えます。マグネットはホワイトボードの作戦盤そのままの画面で、磁石（選手）を指で動かし、ペンで書き込むだけ。ペンを選んでいても磁石はそのまま動かせます。シンプルは選手の移動・ペン・矢印・ローテ操作だけに絞った表示で、試合中のタイムアウトや初めての選手向け。プロでは戦術設定・攻撃ライン・反則チェック・ボール軌道などすべての機能が使えます。作った作戦はどちらのモードでも同じものを開けます。</p>
+<h4>ショートカット</h4><p><kbd>Ctrl</kbd>+<kbd>Z</kbd> 元に戻す　<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> やり直し　<kbd>←</kbd><kbd>→</kbd> フレーム移動　<kbd>R</kbd> ローテを回す　<kbd>N</kbd> 背番号の表示切り替え</p>
 <h4>ホーム画面に追加（PWA）</h4><p>iPad／iPhone：Safariの共有ボタン →「ホーム画面に追加」。Android／PC：Chromeのインストールボタン。一度開けば体育館などオフラインでも使えます。</p></div>`);
 $('#fsBtn').onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>toast('全画面にできませんでした'));}catch(e){toast('全画面にできませんでした');}};
 let deferred=null;
@@ -722,10 +805,11 @@ document.addEventListener('keydown',e=>{
  if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redoF();return;}
  if(e.ctrlKey||e.metaKey||e.altKey)return;
  const T={v:'select',p:'pen',a:'arrow',b:'ball',z:'zone',t:'text',e:'erase'};
- if(T[k]){ui.tool=T[k];renderTools();save();return;}
+ if(T[k]){if(ui.simple&&!SIMPLE_TOOLS.includes(T[k]))return;ui.tool=T[k];renderTools();save();return;}
  if(e.key===' '){e.preventDefault();play();return;}
  if(e.key==='ArrowRight'){if(playing)stop();setFrame(doc.cur+1);}
  if(e.key==='ArrowLeft'){if(playing)stop();setFrame(doc.cur-1);}
+ if(k==='n'){ui.showNum=!ui.showNum;renderTokens();renderMbar();if(ui.tab==='disp')renderPanel();save();return;}
  if(k==='r'){push();F().rot.own=(F().rot.own+1)%6;applyAuto(F());renderBoard();renderPanel();save();}
 });
 renderAll();
