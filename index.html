@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VB Tactics 作戦ボード</title>
+<meta name="theme-color" content="#001F43">
+<meta name="description" content="バレーボールの守備位置・攻撃戦略を視覚的に共有する作戦ボード">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VB Tactics">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+/*
+VOICE: 試合中のベンチで一瞬で読める、プロ用の作戦盤。迷いのない操作。
+IDEA: 監督が持つマグネット式の作戦ボード。コートが主役、道具はその縁に。
+PICTURE: 実寸比のコートSVG。選手駒・ボール・矢印・助走ライン・反則表示。
+COLOUR and TYPE: 濃紺 #001F43 の地に黄 #F4E511 を差し色、相手は白×赤。システムフォント（オフライン前提）。
+LAYOUT: 左に道具レール、中央にコートとフレーム帯、右に設定パネル。狭い画面では縦積み。
+*/
+:root{--navy:#001F43;--navy2:#062a57;--navy3:#0d3a73;--line:#1f4a85;--yel:#F4E511;--ink:#EEF3FA;--mut:#9fb3cf;--red:#FF5A5F;--ok:#4fd18b;
+ --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:var(--navy);color:var(--ink);font:15px/1.5 "Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Meiryo",system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+button,select,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--yel);outline-offset:2px}
+svg.i{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.top{display:flex;align-items:center;gap:12px;padding:calc(8px + var(--safe-t)) calc(14px + var(--safe-r)) 8px calc(14px + var(--safe-l));background:var(--navy);border-bottom:1px solid var(--line);height:calc(60px + var(--safe-t))}
+.brand{display:flex;align-items:center;gap:10px;flex:none}
+.brand b{display:block;font-size:17px;letter-spacing:.04em;line-height:1.1;color:var(--yel)}
+.brand small{display:block;font-size:11px;color:var(--mut)}
+.docname{flex:1;display:flex;gap:8px;align-items:center}
+.docname input{width:min(320px,100%);background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 10px;font-weight:700;font-size:16px}
+.docname input:hover,.docname input:focus{border-color:var(--line);background:var(--navy2);outline:0}
+.acts{display:flex;gap:6px;flex:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;min-width:40px;padding:0 12px;border-radius:10px;background:var(--navy2);border:1px solid var(--line);font-weight:600;font-size:14px;white-space:nowrap}
+.btn:hover{background:var(--navy3)}
+.btn.pri{background:var(--yel);color:var(--navy);border-color:var(--yel)}
+.btn.pri:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn.ic{padding:0}
+.btn:disabled{opacity:.4;cursor:default}
+.app{display:grid;grid-template-columns:76px minmax(0,1fr) 340px;height:calc(100dvh - 60px - var(--safe-t))}
+.tools{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px calc(10px + var(--safe-b)) calc(6px + var(--safe-l));border-right:1px solid var(--line);overflow-y:auto;background:var(--navy)}
+.tool{width:62px;min-height:54px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--mut)}
+.tool:hover{background:var(--navy2);color:var(--ink)}
+.tool.on{background:var(--yel);color:var(--navy);font-weight:700}
+.sep{width:40px;height:1px;background:var(--line);margin:6px 0;flex:none}
+.sw{width:30px;height:30px;border-radius:50%;border:3px solid transparent;flex:none;margin:2px}
+.sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--navy),0 0 0 4px var(--yel)}
+.stage{display:flex;flex-direction:column;min-height:0;background:radial-gradient(120% 90% at 50% 40%,#08305f 0%,var(--navy) 70%)}
+.viewbar{display:flex;align-items:center;gap:8px;padding:8px 12px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--navy2);border:1px solid var(--line);font-size:13px;font-weight:600;white-space:nowrap}
+.chip.y{background:var(--yel);color:var(--navy);border-color:var(--yel)}
+.chip.r{background:#3a1020;border-color:var(--red);color:#ffd0d2}
+.chip.g{background:#0b3a2a;border-color:var(--ok);color:#c9f5dc}
+.grow{flex:1}
+.seg{display:inline-flex;background:var(--navy2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{min-height:34px;padding:0 10px;border-radius:7px;font-size:13px;font-weight:600;color:var(--mut);white-space:nowrap}
+.seg button:hover{color:var(--ink)}
+.seg button.on{background:var(--yel);color:var(--navy)}
+.seg.full{display:flex;width:100%}
+.seg.g2{display:grid;grid-template-columns:1fr 1fr}
+.seg.full button{flex:1}
+.courtwrap{position:relative;flex:1;min-height:260px}
+#court{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#court.draw{cursor:crosshair}
+#court [data-tok]{cursor:grab}
+.frames{display:flex;align-items:center;gap:8px;padding:8px 12px calc(8px + var(--safe-b));border-top:1px solid var(--line);background:rgba(0,20,48,.6);overflow-x:auto}
+.fchips{display:flex;gap:6px;flex:none}
+.fchip{min-width:44px;height:40px;border-radius:10px;background:var(--navy2);border:1px solid var(--line);font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05;padding:0 8px}
+.fchip small{font-size:9px;font-weight:500;color:var(--mut)}
+.fchip.on{background:var(--yel);color:var(--navy);border-color:var(--yel)}
+.fchip.on small{color:var(--navy)}
+.frames select{width:auto;background:var(--navy2);border:1px solid var(--line);border-radius:10px;height:40px;padding:0 8px}
+.panel{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--navy)}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex:none}
+.tabs button{flex:1;min-height:46px;font-weight:700;color:var(--mut);border-bottom:3px solid transparent;font-size:14px}
+.tabs button.on{color:var(--yel);border-bottom-color:var(--yel)}
+.pbody{overflow-y:auto;padding:12px 14px calc(24px + var(--safe-b));flex:1;user-select:text;-webkit-user-select:text}
+.sec{margin-bottom:16px}
+.sec h3{font-size:12px;color:var(--mut);margin:0 0 6px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sec h3 .chip{font-size:11px;padding:1px 8px}
+.six button{min-width:38px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mut);font-weight:600}
+select,input[type=text],input[type=number],textarea{background:var(--navy2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:16px;color:var(--ink);width:100%}
+select{height:42px;padding:0 8px}
+textarea{min-height:70px;resize:vertical}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btnrow .btn{flex:1}
+.card{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--navy2);font-size:13px}
+.card.bad{border-color:var(--red);background:#2a0f22}
+.card.good{border-color:var(--ok);background:#0a2f2c}
+.card b{font-size:14px}
+.card ul{margin:6px 0 0;padding-left:18px}
+.hint{font-size:12px;color:var(--mut);margin:6px 0 0}
+table.m{width:100%;border-collapse:collapse;font-size:13px}
+table.m th{font-size:11px;color:var(--mut);text-align:left;font-weight:600;padding:2px 3px}
+table.m td{padding:3px}
+table.m input,table.m select{padding:6px;font-size:15px;height:38px}
+table.m td.n{width:30px;text-align:center;font-weight:800;color:var(--yel)}
+table.m td.num{width:62px}
+table.m td.role{width:84px}
+.tg{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid rgba(31,74,133,.6);font-size:14px}
+.tg input{width:22px;height:22px;accent-color:var(--yel)}
+.modal{position:fixed;inset:0;background:rgba(0,10,25,.7);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal[hidden]{display:none}
+.sheet{background:var(--navy);border:1px solid var(--line);border-radius:16px;width:min(560px,100%);max-height:88dvh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.sheet h2{margin:0;padding:14px 18px;font-size:17px;border-bottom:1px solid var(--line);color:var(--yel)}
+.sheet .bd{padding:14px 18px;overflow-y:auto;user-select:text;-webkit-user-select:text}
+.sheet .ft{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line)}
+.lib{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.lib li{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--navy2)}
+.lib li .t{flex:1}
+.lib li .t b{display:block}
+.lib li .t small{color:var(--mut)}
+.empty{color:var(--mut);text-align:center;padding:18px;border:1px dashed var(--line);border-radius:10px}
+.help h4{margin:12px 0 4px;color:var(--yel)}
+.help p,.help li{font-size:14px}
+kbd{background:var(--navy2);border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:12px}
+#toast{position:fixed;left:50%;bottom:calc(24px + var(--safe-b));transform:translateX(-50%) translateY(20px);background:var(--yel);color:var(--navy);font-weight:700;padding:10px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media print{body{overflow:visible;background:#fff}.top .acts,.tools,.frames,.panel,.viewbar,#toast{display:none!important}.app{display:block;height:auto}.courtwrap{height:92vh}}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+@media (max-width:1100px){.app{grid-template-columns:72px minmax(0,1fr) 300px}}
+@media (max-width:900px){
+ body{overflow:auto}
+ .app{grid-template-columns:68px minmax(0,1fr);grid-template-rows:minmax(440px,72dvh) auto;height:auto}
+ .panel{grid-column:1/-1;border-left:0;border-top:1px solid var(--line)}
+ .pbody{overflow:visible}
+ .acts .lbl{display:none}
+}
+@media (max-width:600px){
+ .top{gap:6px;padding-inline:10px}
+ .brand small,.brand b,.docname input,#fsBtn{display:none}
+ .acts{flex:1;justify-content:flex-end}
+ .docname input{font-size:15px;padding:4px 6px}
+ .app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(420px,68dvh) auto}
+ .tools{flex-direction:row;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto;overflow-y:hidden;padding:6px}
+ .tool{width:54px;min-height:48px;flex:none}
+ .sep{width:1px;height:36px;margin:0 4px}
+ .grid2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header class="top">
+ <div class="brand">
+  <svg width="36" height="36" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#F4E511"/><circle cx="32" cy="32" r="19" fill="#001F43"/><path d="M32 13c-6 8-6 22 0 38M14 27c9 2 22 0 34-9M17 44c8-7 21-12 33-9" fill="none" stroke="#F4E511" stroke-width="3.2" stroke-linecap="round"/></svg>
+  <div><b>VB TACTICS</b><small>バレーボール作戦ボード</small></div>
+ </div>
+ <div class="docname"><input id="docName" type="text" aria-label="作戦名" maxlength="40"></div>
+ <div class="acts">
+  <button class="btn ic" id="undoBtn" title="元に戻す (Ctrl+Z)" aria-label="元に戻す"></button>
+  <button class="btn ic" id="redoBtn" title="やり直し (Ctrl+Shift+Z)" aria-label="やり直し"></button>
+  <button class="btn" id="libBtn" title="作戦ライブラリ"><span data-ico="lib"></span><span class="lbl">ライブラリ</span></button>
+  <button class="btn" id="expBtn" title="書き出し"><span data-ico="down"></span><span class="lbl">書き出し</span></button>
+  <button class="btn pri" id="installBtn" hidden><span data-ico="install"></span><span class="lbl">インストール</span></button>
+  <button class="btn ic" id="fsBtn" title="全画面" aria-label="全画面"></button>
+  <button class="btn ic" id="helpBtn" title="使い方" aria-label="使い方"></button>
+ </div>
+</header>
+
+<main class="app">
+ <nav class="tools" id="tools" aria-label="ツール"></nav>
+ <section class="stage">
+  <div class="viewbar" id="viewbar"></div>
+  <div class="courtwrap"><svg id="court" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="バレーボールコート"><g id="world"><g id="floor"></g><g id="overlay"></g><g id="draws"></g><g id="tokens"></g><g id="preview"></g></g></svg></div>
+  <div class="frames" id="frames"></div>
+ </section>
+ <aside class="panel">
+  <div class="tabs" id="tabs"><button data-tab="set">配置・戦術</button><button data-tab="mem">メンバー</button><button data-tab="disp">表示</button></div>
+  <div class="pbody" id="pbody"></div>
+ </aside>
+</main>
+<div class="modal" id="modal" hidden><div class="sheet" role="dialog" aria-modal="true"><h2 id="mTitle"></h2><div class="bd" id="mBody"></div><div class="ft" id="mFoot"></div></div></div>
+<div id="toast" role="status"></div>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
+
+<script>
+{
+/* ---------- 基本 ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const NAVY='#001F43',YEL='#F4E511',RED='#FF5A5F';
+const r2=n=>Math.round(n*100)/100;
+
+const ICONS={select:'M5 3l13 7.5-5.6 1.6L10 18z',pen:'M4 20l4-1 11-11-3-3L5 16zM14 6l3 3',arrow:'M5 19L18 6M10 6h8v8',
+ ball:'M4 18c2-8 8-12 15-12M15 3l4 3-3 4',zone:'M12 6c5 0 9 2.7 9 6s-4 6-9 6-9-2.7-9-6 4-6 9-6z',text:'M5 7V5h14v2M12 5v14M9 19h6',
+ erase:'M15 4l5 5-10 10H5l-2-2zM8.5 9.5l6 6M10 19h10',trash:'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',dash:'M3 12h3M9 12h3M15 12h3M21 12h0',
+ undo:'M9 14L4 9l5-5M4 9h11a5 5 0 010 10h-4',redo:'M15 14l5-5-5-5M20 9H9a5 5 0 000 10h4',play:'M7 4l13 8-13 8z',pause:'M7 4h3v16H7zM14 4h3v16h-3z',
+ plus:'M12 5v14M5 12h14',copy:'M8 8h11v11H8zM5 16V5h11',del:'M6 6l12 12M18 6L6 18',lib:'M4 4h4v16H4zM10 4h4v16h-4zM16 5l4 1-3 14-4-1z',
+ down:'M12 4v11M7 10l5 5 5-5M5 20h14',fs:'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',help:'M9 9a3 3 0 115 2c-1 .8-2 1.3-2 3M12 18h0M12 21a9 9 0 110-18 9 9 0 010 18z',
+ install:'M12 3v12M7 10l5 5 5-5M4 15v5h16v-5',rot:'M4 12a8 8 0 0114-5l2 2M20 4v5h-5M20 12a8 8 0 01-14 5l-2-2M4 20v-5h5',auto:'M12 3l2 5 5 .5-4 3.5 1.5 5L12 14l-4.5 3 1.5-5-4-3.5 5-.5z',
+ next:'M5 12h14M13 6l6 6-6 6',save:'M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6'};
+const ico=n=>`<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
+document.querySelectorAll('[data-ico]').forEach(el=>el.outerHTML=ico(el.dataset.ico));
+$('#undoBtn').innerHTML=ico('undo');$('#redoBtn').innerHTML=ico('redo');$('#fsBtn').innerHTML=ico('fs');$('#helpBtn').innerHTML=ico('help');
+
+/* ---------- バレーボールの定義 ---------- */
+const ROLES={S:'セッター',OH:'アウトサイド',MB:'ミドル',OP:'オポジット',L:'リベロ'};
+const PHASES={receive:'サーブレシーブ',serve:'サーブ',defense:'ディフェンス',attack:'攻撃'};
+const PHASE_SUB={receive:'相手サーブを受ける',serve:'自チームがサーブ',defense:'相手の攻撃を守る',attack:'トランジション攻撃'};
+const OPP_PHASE={receive:'serve',serve:'receive',defense:'attack',attack:'defense'};
+const NEXT_PHASE={receive:'attack',serve:'defense',defense:'attack',attack:'defense'};
+const LANE={1:[2,7.5],2:[7.5,7.5],3:[7.5,4.5],4:[7.5,1.5],5:[2,1.5],6:[2,4.5]};
+const rotPos=(i,k)=>((i-k)%6+6)%6+1;
+const SPOTS={3:[[2.8,1.5],[2.5,4.5],[2.8,7.5]],4:[[3.4,1.0],[2.3,3.4],[2.3,5.6],[3.4,8.0]],5:[[5.0,1.0],[5.2,4.5],[5.0,8.0],[2.0,2.7],[2.0,6.3]]};
+const DEF={
+ left:{perimeter:{RF:[8.55,8.25],MF:[8.55,7.0],LF:[6.0,1.4],RB:[3.0,8.4],CB:[0.9,4.9],LB:[2.8,0.9]},
+       rotation:{RF:[8.55,8.25],MF:[8.55,7.0],LF:[6.2,1.6],RB:[6.4,7.4],CB:[1.3,7.4],LB:[3.0,1.0]},
+       manup:{RF:[8.55,8.25],MF:[8.55,7.0],LF:[6.0,1.4],RB:[3.0,8.4],CB:[6.6,6.1],LB:[3.0,0.9]}},
+ center:{perimeter:{MF:[8.55,4.5],RF:[8.4,6.2],LF:[8.4,2.8],RB:[3.0,7.9],CB:[1.0,4.5],LB:[3.0,1.1]},
+       rotation:{MF:[8.55,4.5],RF:[8.4,6.2],LF:[8.4,2.8],RB:[3.6,7.6],CB:[1.2,4.5],LB:[3.6,1.4]},
+       manup:{MF:[8.55,4.5],RF:[8.4,6.2],LF:[8.4,2.8],RB:[3.0,7.9],CB:[6.4,4.5],LB:[3.0,1.1]}}};
+const MIR={LF:'RF',RF:'LF',LB:'RB',RB:'LB',MF:'MF',CB:'CB'};
+const QUICK={A:{start:[6.4,4.9],hit:[8.5,5.1],label:'A速攻'},B:{start:[6.3,3.2],hit:[8.5,3.5],label:'B速攻'},C:{start:[6.5,6.4],hit:[8.5,7.0],label:'C速攻'},broad:{start:[6.6,4.4],hit:[8.5,8.3],label:'ブロード'}};
+const SET_SPOT=[8.4,6.0];
+const CONS=[[4,5,'x'],[3,6,'x'],[2,1,'x'],[4,3,'y'],[3,2,'y'],[5,6,'y'],[6,1,'y']];
+
+function lineup(team,pre,k,phase,system){
+ const E=team.players.map((p,i)=>({id:pre+i,num:p.num,name:p.name,role:p.role,pos:rotPos(i,k)}));
+ E.forEach(e=>e.front=e.pos>=2&&e.pos<=4);
+ if(team.useLib){
+  const c=E.find(e=>e.role==='MB'&&!e.front&&!(phase==='serve'&&e.pos===1));
+  if(c){c.sub=c.id;Object.assign(c,{id:pre+'L',num:team.libero.num,name:team.libero.name,role:'L'});}
+ }
+ const Ss=E.filter(e=>e.role==='S');let st=Ss[0];
+ if(system==='4-2')st=Ss.find(e=>e.front)||st;else if(system==='6-2')st=Ss.find(e=>!e.front)||st;
+ E.forEach(e=>{e.isSetter=e===st;e.eff=(e.role==='S'&&!e.isSetter)?'OP':e.role;});
+ return E;
+}
+function legalize(L,exempt){
+ const keys=Object.keys(L).map(Number);
+ for(let pass=0;pass<3;pass++){
+  for(let it=0;it<80;it++){
+   let moved=false;
+   for(const[a,b,ax]of CONS){
+    if(exempt&&(a===1||b===1))continue;
+    if(!L[a]||!L[b])continue;
+    if(ax==='x'){const need=L[b][0]+.3-L[a][0];if(need>0){L[a][0]+=need/2+.01;L[b][0]-=need/2+.01;moved=true;}}
+    else{const need=L[a][1]+.3-L[b][1];if(need>0){L[a][1]-=need/2+.01;L[b][1]+=need/2+.01;moved=true;}}
+   }
+   if(!moved)break;
+  }
+  if(pass===2)break;
+  for(const a of keys)for(const b of keys){if(a>=b)continue;const p=L[a],q=L[b];const d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(d>=1.25)continue;
+   const c=CONS.find(([x,y])=>(x===a&&y===b)||(x===b&&y===a))||null;const g=(1.25-d)/2+.02;
+   if(c&&!(exempt&&(a===1||b===1))){const hi=L[c[0]],lo=L[c[1]];if(c[2]==='x'){hi[0]+=g;lo[0]-=g;}else{hi[1]-=g;lo[1]+=g;}}
+   else{const dx=q[0]-p[0],dy=q[1]-p[1],u=d||1,ux=d?dx/u:0,uy=d?dy/u:1;p[0]-=ux*g;p[1]-=uy*g;q[0]+=ux*g;q[1]+=uy*g;}}
+ }
+ for(const k of keys){L[k][0]=Math.max(-1.6,Math.min(8.75,L[k][0]));L[k][1]=Math.max(-.6,Math.min(9.6,L[k][1]));}
+}
+function perms(a){if(a.length<2)return[a];const out=[];a.forEach((x,i)=>perms([...a.slice(0,i),...a.slice(i+1)]).forEach(p=>out.push([x,...p])));return out;}
+function recvTargets(E,n,L){
+ const setter=E.find(e=>e.isSetter);
+ let ps;
+ if(n===5)ps=E.filter(e=>e!==setter&&!(e.front&&e.eff==='MB')).concat(E.filter(e=>e.front&&e.eff==='MB'&&e!==setter)).slice(0,5);
+ else{
+  ps=E.filter(e=>(e.eff==='L'||e.eff==='OH')&&e!==setter);
+  const pool=[...E.filter(e=>!e.front&&e!==setter&&!ps.includes(e)),...E.filter(e=>e.front&&e.eff==='OP'&&!ps.includes(e)),...E.filter(e=>e.front&&e.eff==='MB'&&!ps.includes(e))];
+  if(n===4){const op=E.find(e=>e.eff==='OP'&&e!==setter&&!ps.includes(e));if(op)ps.push(op);}
+  while(ps.length<n&&pool.length){const x=pool.shift();if(!ps.includes(x))ps.push(x);}
+  ps=ps.slice(0,n);
+ }
+ const sp=SPOTS[n].slice(0,ps.length);let best=null,bc=1e9;
+ for(const pm of perms(sp.map((_,i)=>i))){let c=0;ps.forEach((e,i)=>{const l=LANE[e.pos],s=sp[pm[i]];c+=(l[0]-s[0])**2*.35+(l[1]-s[1])**2;});if(c<bc){bc=c;best=pm;}}
+ ps.forEach((e,i)=>L[e.pos]=[...sp[best[i]]]);
+ E.forEach(e=>{if(L[e.pos])return;const ly=LANE[e.pos][1];
+  if(e===setter)L[e.pos]=e.front?[8.3,Math.max(2,Math.min(8,ly))]:(e.pos===1?[5.6,8.0]:[5.4,ly]);
+  else L[e.pos]=e.front?[8.2,ly]:[0.8,ly];});
+}
+function assignSlots(E,libSlot){
+ const res={},used=new Set();const SY={LF:1.5,MF:4.5,RF:7.5,LB:1.5,CB:4.5,RB:7.5};
+ const run=(pool,order,pref)=>{
+  for(let lv=0;lv<5;lv++)for(const s of order){if(res[s])continue;
+   const c=pool.filter(e=>!used.has(e)&&(pref[s][lv]==='S'?e.isSetter:e.eff===pref[s][lv]));
+   if(!c.length)continue;c.sort((a,b)=>Math.abs(LANE[a.pos][1]-SY[s])-Math.abs(LANE[b.pos][1]-SY[s]));res[s]=c[0];used.add(c[0]);}
+  for(const s of order)if(!res[s]){const e=pool.find(e=>!used.has(e));if(e){res[s]=e;used.add(e);}}
+ };
+ run(E.filter(e=>e.front),['MF','RF','LF'],{MF:['MB','OH','OP','S','L'],RF:['S','OP','OH','MB','L'],LF:['OH','OP','MB','S','L']});
+ const l5=libSlot===5;
+ run(E.filter(e=>!e.front),['RB','LB','CB'],{RB:['S','OP','OH','MB','L'],LB:l5?['L','MB','OH','OP','S']:['OH','OP','L','MB','S'],CB:l5?['OH','OP','L','MB','S']:['L','MB','OH','OP','S']});
+ return res;
+}
+function defPos(sys,side,slot){if(side==='right'){const p=DEF.left[sys][MIR[slot]];return[p[0],9-p[1]];}return[...DEF[side][sys][slot]];}
+function atkPos(e,slot,quick,usedPipe){
+ if(e.isSetter)return[...SET_SPOT];
+ if(slot==='LF')return[5.6,0.4];if(slot==='MF')return[...QUICK[quick].start];if(slot==='RF')return[5.8,8.7];
+ if(e.eff==='OH')return usedPipe.v++?[3.2,1.8]:[3.2,4.5];
+ if(e.eff==='OP')return[3.3,8.0];
+ return[4.4,2.6];
+}
+function formation(team,pre,k,phase,system,S){
+ const E=lineup(team,pre,k,phase,system),P={};
+ if(phase==='serve'||phase==='receive'){
+  const L={};
+  if(phase==='serve'){E.forEach(e=>{const ly=LANE[e.pos][1];L[e.pos]=e.pos===1?[-1.3,7.6]:e.front?[7.6,ly]:[3.4,ly];});legalize(L,true);}
+  else{recvTargets(E,S.recv,L);legalize(L,false);}
+  E.forEach(e=>P[e.id]=L[e.pos].map(r2));
+ }else{
+  const sl=assignSlots(E,S.libSlot),up={v:0};
+  for(const[s,e]of Object.entries(sl))P[e.id]=(phase==='defense'?defPos(S.defSys,S.side,s):atkPos(e,s,S.quick,up)).map(r2);
+ }
+ return{E,P};
+}
+const mirror=p=>[r2(18-p[0]),r2(9-p[1])];
+function applyAuto(F,d){
+ d=d||doc;const S=d.settings;
+ const own=formation(d.teams.own,'o',F.rot.own,F.phase,S.system,S);
+ const opp=formation(d.teams.opp,'p',F.rot.opp,OPP_PHASE[F.phase],S.oppSystem,S);
+ F.pos={};Object.assign(F.pos,own.P);for(const id in opp.P)F.pos[id]=mirror(opp.P[id]);
+ let b;
+ if(F.phase==='receive'){const s=opp.E.find(e=>e.pos===1);b=s?mirror(opp.P[s.id]):[19.3,1.4];b=[b[0]-.15,b[1]-.7];}
+ else if(F.phase==='serve'){const s=own.E.find(e=>e.pos===1);b=s?[...own.P[s.id]]:[-1.3,7.6];b=[b[0]+.15,b[1]+.7];}
+ else if(F.phase==='defense'){b=S.side==='left'?mirror([8.4,0.9]):S.side==='right'?mirror([8.4,8.2]):mirror(QUICK.A.hit);}
+ else b=[8.8,6.0];
+ F.pos.ball=b.map(r2);
+}
+function teamCtx(tk,F){
+ const S=doc.settings;const ph=tk==='own'?F.phase:OPP_PHASE[F.phase];
+ return{ph,E:lineup(doc.teams[tk],tk==='own'?'o':'p',F.rot[tk],ph,tk==='own'?S.system:S.oppSystem)};
+}
+function faults(tk,F,pos){
+ const{ph,E}=teamCtx(tk,F);if(ph!=='receive'&&ph!=='serve')return null;
+ const P={};E.forEach(e=>{const p=pos[e.id];if(p)P[e.pos]={e,p:tk==='own'?p:mirror(p)};});
+ const out=[];
+ for(const[a,b,ax]of CONS){
+  if(ph==='serve'&&(a===1||b===1))continue;const A=P[a],B=P[b];if(!A||!B)continue;
+  if(ax==='x'&&!(A.p[0]>B.p[0]))out.push({a:A.e,b:B.e,msg:`#${A.e.num}（P${a}）は #${B.e.num}（P${b}）より前（ネット側）にいる必要があります`});
+  if(ax==='y'&&!(A.p[1]<B.p[1]))out.push({a:A.e,b:B.e,msg:`#${A.e.num}（P${a}）は #${B.e.num}（P${b}）より${tk==='own'?'左':'左'}側にいる必要があります`});
+ }
+ return{ph,list:out};
+}
+function approaches(tk,F,pos){
+ const{ph,E}=teamCtx(tk,F);if(ph!=='attack')return[];
+ const sl=assignSlots(E,doc.settings.libSlot),out=[],q=QUICK[doc.settings.quick];let pipe=0;
+ for(const[s,e]of Object.entries(sl)){
+  if(e.isSetter)continue;let h=null;
+  if(s==='LF')h=[8.4,0.9,'レフト'];else if(s==='MF')h=[...q.hit,q.label];else if(s==='RF')h=doc.settings.quick==='broad'?[8.4,7.2,'ライト']:[8.4,8.2,'ライト'];
+  else if(e.eff==='OH'&&!pipe++)h=[5.7,4.5,'パイプ'];else if(e.eff==='OP')h=[5.7,7.7,'D (バックライト)'];
+  if(!h)continue;const hp=tk==='own'?[h[0],h[1]]:mirror([h[0],h[1]]);
+  out.push({id:e.id,hit:hp,label:h[2]});
+ }
+ const st=E.find(e=>e.isSetter);return out.map(o=>({...o,setter:st?st.id:null}));
+}
+
+/* ---------- 状態 ---------- */
+function newDoc(){
+ const d={v:1,name:'新しい作戦',cat:'サーブレシーブ',
+  teams:{own:{name:'自チーム',useLib:true,players:[{num:2,name:'佐藤',role:'S'},{num:4,name:'鈴木',role:'OH'},{num:6,name:'高橋',role:'MB'},{num:8,name:'田中',role:'OP'},{num:10,name:'伊藤',role:'OH'},{num:12,name:'渡辺',role:'MB'}],libero:{num:7,name:'山本'}},
+   opp:{name:'相手チーム',useLib:true,players:[{num:1,name:'',role:'S'},{num:3,name:'',role:'OH'},{num:5,name:'',role:'MB'},{num:9,name:'',role:'OP'},{num:11,name:'',role:'OH'},{num:13,name:'',role:'MB'}],libero:{num:15,name:''}}},
+  settings:{system:'5-1',oppSystem:'5-1',recv:3,defSys:'perimeter',side:'left',quick:'A',libSlot:5},
+  frames:[{rot:{own:0,opp:0},phase:'receive',pos:{},draws:[],note:''}],cur:0};
+ applyAuto(d.frames[0],d);return d;
+}
+let doc=store.get('vbtb.current',null);
+if(!doc||!doc.frames||!doc.frames.length)doc=newDoc();
+const ui=Object.assign({tool:'select',color:YEL,dash:false,tab:'set',view:'full',vertical:false,showOpp:true,label:'role',zones:true,approach:true,check:true,speed:1,loop:false,libId:null},store.get('vbtb.ui',{}));
+if(innerWidth<600&&!store.get('vbtb.ui',null))ui.vertical=true;
+ui.tool='select';
+const hist=[],redo=[];
+const F=()=>doc.frames[doc.cur];
+let saveT=0;
+function save(){clearTimeout(saveT);saveT=setTimeout(()=>{store.set('vbtb.current',doc);store.set('vbtb.ui',ui);},250);}
+function push(){hist.push(JSON.stringify(doc));if(hist.length>80)hist.shift();redo.length=0;updUndo();}
+function undo(){if(!hist.length)return;redo.push(JSON.stringify(doc));doc=JSON.parse(hist.pop());renderAll();save();}
+function redoF(){if(!redo.length)return;hist.push(JSON.stringify(doc));doc=JSON.parse(redo.pop());renderAll();save();}
+function updUndo(){$('#undoBtn').disabled=!hist.length;$('#redoBtn').disabled=!redo.length;}
+
+/* ---------- コート描画 ---------- */
+const svg=$('#court'),world=$('#world');
+const VB={h:{full:'-3 -2 24 13',own:'-3 -2 13.6 13',opp:'7.4 -2 13.6 13'},v:{full:'-2 -3 13 24',own:'-2 7.4 13 13.6',opp:'-2 -3 13 13.6'}};
+const R=()=>ui.vertical?90:0;
+const txt=(x,y,s,a='')=>`<text transform="translate(${x} ${y}) rotate(${R()})" ${a}>${s}</text>`;
+const FONT=`font-family="Hiragino Sans,Noto Sans JP,Meiryo,sans-serif"`;
+function renderFloor(){
+ svg.setAttribute('viewBox',VB[ui.vertical?'v':'h'][ui.view]);
+ world.setAttribute('transform',ui.vertical?'matrix(0,-1,1,0,0,18)':'');
+ let s=`<rect x="-4" y="-3" width="26" height="15" fill="#082a55"/>
+ <rect x="0" y="0" width="18" height="9" fill="#11417c"/><rect x="6" y="0" width="6" height="9" fill="#17508f"/>
+ <g stroke="#fff" stroke-width=".05" fill="none"><rect x="0" y="0" width="18" height="9"/><line x1="6" y1="0" x2="6" y2="9"/><line x1="12" y1="0" x2="12" y2="9"/></g>
+ <g stroke="#fff" stroke-width=".05" stroke-dasharray=".15 .2" opacity=".7"><line x1="6" y1="-1.75" x2="6" y2="0"/><line x1="12" y1="-1.75" x2="12" y2="0"/><line x1="6" y1="9" x2="6" y2="10.75"/><line x1="12" y1="9" x2="12" y2="10.75"/></g>`;
+ if(ui.zones){
+  s+=`<g stroke="#fff" stroke-width=".025" stroke-dasharray=".12 .14" opacity=".35"><line x1="3" y1="0" x2="3" y2="9"/><line x1="15" y1="0" x2="15" y2="9"/><line x1="0" y1="3" x2="18" y2="3"/><line x1="0" y1="6" x2="18" y2="6"/></g><g fill="#fff" opacity=".22" font-size="1.1" font-weight="800" text-anchor="middle" dominant-baseline="central" ${FONT}>`;
+  for(const z in LANE){const[x,y]=LANE[z];const zx=z>=2&&z<=4?7.5:1.5;s+=txt(zx,y,z)+txt(18-zx,9-y,z);}
+  s+='</g>';
+ }
+ s+=`<line x1="9" y1="-1.1" x2="9" y2="10.1" stroke="${YEL}" stroke-width=".14"/><circle cx="9" cy="-1.1" r=".2" fill="${YEL}"/><circle cx="9" cy="10.1" r=".2" fill="${YEL}"/>
+ <g stroke-width=".1"><line x1="9" y1="-.02" x2="9" y2=".02" stroke="#fff"/><rect x="8.93" y="-.06" width=".14" height=".12" fill="${RED}"/><rect x="8.93" y="8.94" width=".14" height=".12" fill="${RED}"/></g>
+ <g font-size=".5" font-weight="700" ${FONT} text-anchor="middle" dominant-baseline="central">${txt(4.5,-1.15,esc(doc.teams.own.name),`fill="${YEL}"`)}${ui.showOpp?txt(13.5,-1.15,esc(doc.teams.opp.name),'fill="#fff"'):''}</g>`;
+ $('#floor').innerHTML=s;
+}
+function tokenSVG(e,tk,p,flag){
+ const own=tk==='own',lib=e.role==='L';
+ const fill=own?(lib?NAVY:YEL):(lib?RED:'#fff'),stroke=own?(lib?YEL:'#fff'):(lib?'#fff':RED),tc=own?(lib?YEL:NAVY):(lib?'#fff':NAVY);
+ const sub=ui.label==='name'?(e.name||ROLES[e.eff]||''):ui.label==='role'?(e.isSetter?'S':e.eff):'';
+ return `<g data-tok="${e.id}" transform="translate(${p[0]} ${p[1]}) rotate(${R()})" ${FONT}>
+  ${flag?`<circle r=".7" fill="none" stroke="${RED}" stroke-width=".08" stroke-dasharray=".18 .1"/>`:''}
+  <circle r=".62" fill="transparent"/><circle cx=".04" cy=".07" r=".46" fill="#000" opacity=".3"/>
+  <circle r=".46" fill="${fill}" stroke="${stroke}" stroke-width=".07"/>
+  ${e.isSetter?`<circle cx=".36" cy="-.34" r=".14" fill="${own?NAVY:RED}" stroke="${own?YEL:'#fff'}" stroke-width=".04"/>`:''}
+  <text y=".02" font-size="${String(e.num).length>2?.32:.42}" font-weight="800" fill="${tc}" text-anchor="middle" dominant-baseline="central">${esc(e.num)}</text>
+  ${sub?`<text y=".8" font-size=".3" font-weight="700" fill="#fff" stroke="${NAVY}" stroke-width=".09" paint-order="stroke" text-anchor="middle" dominant-baseline="central">${esc(sub)}</text>`:''}</g>`;
+}
+function renderTokens(Fr,pos){
+ Fr=Fr||F();pos=pos||Fr.pos;
+ let need=false;const teams=ui.showOpp?['opp','own']:['own'];let s='';
+ const bad=new Set();if(ui.check)for(const tk of teams){const r=faults(tk,Fr,pos);if(r)r.list.forEach(f=>{bad.add(f.a.id);bad.add(f.b.id);});}
+ for(const tk of teams){const{E}=teamCtx(tk,Fr);for(const e of E){if(!pos[e.id]){need=true;continue;}s+=tokenSVG(e,tk,pos[e.id],bad.has(e.id));}}
+ if(need&&pos===Fr.pos){const tmp=clone(Fr);applyAuto(tmp);for(const id in tmp.pos)if(!Fr.pos[id])Fr.pos[id]=tmp.pos[id];return renderTokens(Fr);}
+ const b=pos.ball;if(b)s+=`<g data-tok="ball" transform="translate(${b[0]} ${b[1]})"><circle r=".55" fill="transparent"/><circle r=".24" fill="#fff" stroke="${NAVY}" stroke-width=".04"/><path d="M-.24 0a.24 .24 0 0 0 .48 0M0 -.24c-.12 .1-.12 .38 0 .48M-.2 -.13c.1 .1 .3 .1 .4 0" fill="none" stroke="${YEL}" stroke-width=".045"/></g>`;
+ $('#tokens').innerHTML=s;
+}
+function headPts(a,b,L=.5,W=.27){const dx=b[0]-a[0],dy=b[1]-a[1],d=Math.hypot(dx,dy)||1,ux=dx/d,uy=dy/d,bx=b[0]-ux*L,by=b[1]-uy*L;
+ return{base:[bx,by],pts:`${b[0]},${b[1]} ${bx-uy*W},${by+ux*W} ${bx+uy*W},${by-ux*W}`};}
+function shape(d,i){
+ const at=i==null?'':` data-draw="${i}"`,c=d.c,da=d.dash?' stroke-dasharray=".3 .2"':'';
+ if(d.t==='pen'){const pts=d.pts.map(p=>p.join(',')).join(' ');return`<g${at}><polyline points="${pts}" fill="none" stroke="transparent" stroke-width=".6" pointer-events="stroke"/><polyline points="${pts}" fill="none" stroke="${c}" stroke-width=".1" stroke-linecap="round" stroke-linejoin="round"${da}/></g>`;}
+ if(d.t==='arrow'){const h=headPts(d.a,d.b);return`<g${at}><line x1="${d.a[0]}" y1="${d.a[1]}" x2="${d.b[0]}" y2="${d.b[1]}" stroke="transparent" stroke-width=".6"/><line x1="${d.a[0]}" y1="${d.a[1]}" x2="${h.base[0]}" y2="${h.base[1]}" stroke="${c}" stroke-width=".11" stroke-linecap="round"${da}/><polygon points="${h.pts}" fill="${c}"/></g>`;}
+ if(d.t==='ball'){const mx=(d.a[0]+d.b[0])/2,my=(d.a[1]+d.b[1])/2,dx=d.b[0]-d.a[0],dy=d.b[1]-d.a[1],k=.22,cp=[mx-dy*k,my+dx*k],h=headPts(cp,d.b,.45,.24);
+  const p=`M${d.a[0]} ${d.a[1]}Q${cp[0]} ${cp[1]} ${h.base[0]} ${h.base[1]}`;return`<g${at}><path d="${p}" fill="none" stroke="transparent" stroke-width=".6"/><path d="${p}" fill="none" stroke="${c}" stroke-width=".08" stroke-dasharray=".22 .16" stroke-linecap="round"/><polygon points="${h.pts}" fill="${c}"/><circle cx="${d.a[0]}" cy="${d.a[1]}" r=".1" fill="${c}"/></g>`;}
+ if(d.t==='zone'){const cx=(d.a[0]+d.b[0])/2,cy=(d.a[1]+d.b[1])/2,rx=Math.abs(d.b[0]-d.a[0])/2,ry=Math.abs(d.b[1]-d.a[1])/2;return`<ellipse${at} cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="${c}" fill-opacity=".22" stroke="${c}" stroke-width=".06"${da}/>`;}
+ if(d.t==='text')return`<g${at} transform="translate(${d.p[0]} ${d.p[1]}) rotate(${R()})" ${FONT}><text font-size="${d.s||.55}" font-weight="800" fill="${c}" stroke="${NAVY}" stroke-width=".12" paint-order="stroke" text-anchor="middle" dominant-baseline="central">${esc(d.txt)}</text></g>`;
+ return'';
+}
+function renderDraws(Fr){Fr=Fr||F();$('#draws').innerHTML=Fr.draws.map((d,i)=>shape(d,i)).join('');}
+function renderOverlay(Fr,pos){
+ Fr=Fr||F();pos=pos||Fr.pos;let s='';const teams=ui.showOpp?['own','opp']:['own'];
+ if(ui.approach)for(const tk of teams)for(const a of approaches(tk,Fr,pos)){
+  const p=pos[a.id];if(!p)continue;const col=tk==='own'?YEL:'#fff';const h=headPts(p,a.hit,.38,.2);
+  s+=`<line x1="${p[0]}" y1="${p[1]}" x2="${h.base[0]}" y2="${h.base[1]}" stroke="${col}" stroke-width=".06" stroke-dasharray=".14 .12" opacity=".85"/><polygon points="${h.pts}" fill="${col}" opacity=".85"/><circle cx="${a.hit[0]}" cy="${a.hit[1]}" r=".16" fill="none" stroke="${col}" stroke-width=".05"/>`;
+  const st=a.setter&&pos[a.setter];if(st)s+=`<line x1="${st[0]}" y1="${st[1]}" x2="${a.hit[0]}" y2="${a.hit[1]}" stroke="#fff" stroke-width=".025" opacity=".35"/>`;
+  const lx=a.hit[0]+(tk==='own'?-.2:.2),ly=a.hit[1]-.42;
+  s+=`<g font-size=".3" font-weight="700" ${FONT} text-anchor="middle" dominant-baseline="central">${txt(r2(lx),r2(ly),esc(a.label),`fill="${col}" stroke="${NAVY}" stroke-width=".08" paint-order="stroke"`)}</g>`;
+ }
+ if(ui.check)for(const tk of teams){const r=faults(tk,Fr,pos);if(!r)continue;for(const f of r.list){const a=pos[f.a.id],b=pos[f.b.id];if(a&&b)s+=`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${RED}" stroke-width=".07" stroke-dasharray=".2 .12"/>`;}}
+ $('#overlay').innerHTML=s;
+}
+function renderCheck(){
+ const el=$('#checkCard');if(!el)return;const Fr=F();
+ const res=[['own',faults('own',Fr,Fr.pos)]];if(ui.showOpp)res.push(['opp',faults('opp',Fr,Fr.pos)]);
+ const act=res.filter(r=>r[1]);
+ if(!act.length){el.className='card';el.innerHTML='<b>ポジショナルフォールト判定</b><p class="hint">サーブレシーブ／サーブの局面で、サーブを打つ瞬間の前後・左右の位置関係を自動判定します。</p>';return;}
+ const bad=act.flatMap(([tk,r])=>r.list.map(f=>`${tk==='own'?'自':'相手'}：${esc(f.msg)}`));
+ el.className='card '+(bad.length?'bad':'good');
+ el.innerHTML=bad.length?`<b>反則のおそれ（${bad.length}件）</b><ul>${bad.map(m=>`<li>${m}</li>`).join('')}</ul>`:`<b>反則なし ✓</b><p class="hint">${act.map(([tk,r])=>`${tk==='own'?'自チーム':'相手'}（${PHASES[r.ph]}）`).join('・')}の位置関係は正しい状態です。サーバーは判定対象外です。</p>`;
+}
+function renderViewbar(){
+ const Fr=F(),{E}=teamCtx('own',Fr),st=E.find(e=>e.isSetter);
+ const fr=['own','opp'].map(tk=>faults(tk,Fr,Fr.pos)).filter(Boolean),nb=fr.reduce((n,r)=>n+r.list.length,0);
+ $('#viewbar').innerHTML=`<span class="chip y">${PHASES[Fr.phase]}</span><span class="chip">ローテ ${Fr.rot.own+1}${st?`・S${st.pos}`:''}</span><span class="chip">相手 ローテ ${Fr.rot.opp+1}</span>
+ ${ui.check&&fr.length?(nb?`<span class="chip r">反則のおそれ ${nb}</span>`:'<span class="chip g">位置OK</span>'):''}<span class="grow"></span>
+ <div class="seg" role="group" aria-label="表示範囲">${[['full','全面'],['own','自陣'],['opp','相手陣']].map(([v,l])=>`<button data-view="${v}" class="${ui.view===v?'on':''}">${l}</button>`).join('')}</div>
+ <div class="seg" role="group" aria-label="向き"><button data-orient="h" class="${ui.vertical?'':'on'}">横</button><button data-orient="v" class="${ui.vertical?'on':''}">縦</button></div>`;
+}
+function renderFrames(){
+ $('#frames').innerHTML=`<button class="btn ${playing?'':'pri'} ic" id="playBtn" title="再生 (Space)" aria-label="再生">${ico(playing?'pause':'play')}</button>
+ <div class="fchips">${doc.frames.map((f,i)=>`<button class="fchip ${i===doc.cur?'on':''}" data-frame="${i}" title="${esc(f.note||PHASES[f.phase])}">${i+1}<small>${PHASES[f.phase].slice(0,4)}</small></button>`).join('')}</div>
+ <button class="btn ic" data-fact="dup" title="現在のフレームを複製して追加" aria-label="フレーム追加">${ico('plus')}</button>
+ <button class="btn ic" data-fact="del" title="フレーム削除" aria-label="フレーム削除" ${doc.frames.length<2?'disabled':''}>${ico('trash')}</button>
+ <span class="grow"></span>
+ <select id="speed" aria-label="再生速度">${[.5,.75,1,1.5,2].map(v=>`<option value="${v}" ${ui.speed==v?'selected':''}>${v}x</option>`).join('')}</select>
+ <label class="chip" style="cursor:pointer"><input type="checkbox" id="loop" ${ui.loop?'checked':''} style="accent-color:${YEL}">ループ</label>`;
+}
+function renderTools(){
+ const T=[['select','選択',`V`],['pen','ペン','P'],['arrow','矢印','A'],['ball','ボール軌道','B'],['zone','エリア','Z'],['text','文字','T'],['erase','消しゴム','E']];
+ $('#tools').innerHTML=T.map(([k,l,s])=>`<button class="tool ${ui.tool===k?'on':''}" data-tool="${k}" title="${l} (${s})">${ico(k)}<span>${l.length>4?'軌道':l}</span></button>`).join('')+
+ `<div class="sep"></div>`+[YEL,'#FFFFFF',RED,'#4FC3F7','#7CFC9A'].map(c=>`<button class="sw ${ui.color===c?'on':''}" data-color="${c}" style="background:${c}" aria-label="色 ${c}"></button>`).join('')+
+ `<button class="tool ${ui.dash?'on':''}" data-dash="1" title="点線の切り替え">${ico('dash')}<span>点線</span></button><div class="sep"></div><button class="tool" data-clear="1" title="このフレームの描画を全消去">${ico('trash')}<span>全消去</span></button>`;
+ svg.classList.toggle('draw',ui.tool!=='select');
+}
+const sel=(k,opts,v)=>`<select data-s="${k}">${opts.map(([a,b])=>`<option value="${a}" ${String(v)===String(a)?'selected':''}>${b}</option>`).join('')}</select>`;
+function renderPanel(){
+ document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===ui.tab));
+ const Fr=F(),S=doc.settings,el=$('#pbody');
+ if(ui.tab==='set'){
+  const{E}=teamCtx('own',Fr),st=E.find(e=>e.isSetter);
+  el.innerHTML=`<div class="sec"><h3>局面（自チーム視点）</h3><div class="seg full g2">${Object.keys(PHASES).map(p=>`<button data-phase="${p}" class="${Fr.phase===p?'on':''}" title="${PHASE_SUB[p]}">${PHASES[p]}</button>`).join('')}</div><p class="hint">${PHASE_SUB[Fr.phase]}／相手：${PHASES[OPP_PHASE[Fr.phase]]}</p></div>
+  <div class="sec"><h3>自チームのローテーション ${st?`<span class="chip y">セッター P${st.pos}</span>`:''}</h3><div class="btnrow"><div class="seg six">${[0,1,2,3,4,5].map(k=>`<button data-rot="own" data-k="${k}" class="${Fr.rot.own===k?'on':''}">${k+1}</button>`).join('')}</div><button class="btn" data-act="rotate" title="時計回りに1つ回す">${ico('rot')}回す</button></div></div>
+  <div class="sec"><h3>相手のローテーション</h3><div class="btnrow"><div class="seg six">${[0,1,2,3,4,5].map(k=>`<button data-rot="opp" data-k="${k}" class="${Fr.rot.opp===k?'on':''}">${k+1}</button>`).join('')}</div><button class="btn" data-act="rotateOpp">${ico('rot')}回す</button></div></div>
+  <div class="sec grid2">
+   <label class="f">攻撃システム（自）${sel('system',[['5-1','5-1'],['4-2','4-2'],['6-2','6-2']],S.system)}</label>
+   <label class="f">攻撃システム（相手）${sel('oppSystem',[['5-1','5-1'],['4-2','4-2'],['6-2','6-2']],S.oppSystem)}</label>
+   <label class="f">レセプション${sel('recv',[[3,'3人（リベロ+OH）'],[4,'4人'],[5,'5人（W型）']],S.recv)}</label>
+   <label class="f">ディフェンス${sel('defSys',[['perimeter','ペリメーター'],['rotation','ローテーション'],['manup','マンアップ']],S.defSys)}</label>
+   <label class="f">攻撃方向（攻撃側から）${sel('side',[['left','レフト'],['center','センター'],['right','ライト']],S.side)}</label>
+   <label class="f">ミドルの攻撃${sel('quick',[['A','A速攻'],['B','B速攻'],['C','C速攻'],['broad','ブロード']],S.quick)}</label>
+   <label class="f">リベロの守備位置${sel('libSlot',[[5,'ゾーン5（レフトバック）'],[6,'ゾーン6（センターバック）']],S.libSlot)}</label>
+  </div>
+  <div class="sec btnrow"><button class="btn" data-act="auto">${ico('auto')}基本配置に戻す</button><button class="btn pri" data-act="next">次の局面を追加${ico('next')}</button></div>
+  <div class="sec" id="checkCard"></div>
+  <div class="sec"><h3>フレーム ${doc.cur+1} のメモ</h3><textarea id="note" placeholder="例：相手4番のクロスを警戒。レフトはストレートを締める">${esc(Fr.note)}</textarea></div>`;
+  renderCheck();
+ }else if(ui.tab==='mem'){
+  const team=tk=>{const t=doc.teams[tk];return`<div class="sec"><h3>${tk==='own'?'自チーム':'相手チーム'}</h3>
+   <label class="f">チーム名<input type="text" data-tname="${tk}" value="${esc(t.name)}" maxlength="20"></label>
+   <table class="m"><thead><tr><th>順</th><th>背番号</th><th>名前</th><th>役割</th></tr></thead><tbody>
+   ${t.players.map((p,i)=>`<tr><td class="n">${'①②③④⑤⑥'[i]}</td><td class="num"><input type="text" inputmode="numeric" maxlength="3" data-m="${tk}|${i}|num" value="${esc(p.num)}"></td><td><input type="text" maxlength="12" data-m="${tk}|${i}|name" value="${esc(p.name)}"></td><td class="role"><select data-m="${tk}|${i}|role">${['S','OH','MB','OP'].map(r=>`<option value="${r}" ${p.role===r?'selected':''}>${r}</option>`).join('')}</select></td></tr>`).join('')}
+   <tr><td class="n">L</td><td class="num"><input type="text" inputmode="numeric" maxlength="3" data-m="${tk}|L|num" value="${esc(t.libero.num)}"></td><td><input type="text" maxlength="12" data-m="${tk}|L|name" value="${esc(t.libero.name)}"></td><td class="role"><label class="chip" style="cursor:pointer"><input type="checkbox" data-uselib="${tk}" ${t.useLib?'checked':''} style="accent-color:${YEL}">使用</label></td></tr></tbody></table></div>`;};
+  el.innerHTML=team('own')+`<p class="hint" style="margin:-8px 0 16px">①〜⑥はローテ1のときのポジション1〜6。標準の5-1は S→OH→MB→OP→OH→MB の順です。リベロは後衛のミドルと自動で交代します（ミドルがサーブを打つときを除く）。</p>`+team('opp')+
+  `<div class="sec btnrow"><button class="btn" data-act="std51">5-1の標準並び</button><button class="btn" data-act="std42">4-2の標準並び</button></div>`;
+ }else{
+  const tg=(k,l,h)=>`<label class="tg"><span>${l}${h?`<br><small style="color:var(--mut)">${h}</small>`:''}</span><input type="checkbox" data-u="${k}" ${ui[k]?'checked':''}></label>`;
+  el.innerHTML=`<div class="sec"><h3>選手駒のラベル</h3><div class="seg full">${[['num','背番号のみ'],['role','役割'],['name','名前']].map(([v,l])=>`<button data-label="${v}" class="${ui.label===v?'on':''}">${l}</button>`).join('')}</div></div>
+  <div class="sec">${tg('showOpp','相手チームを表示')}${tg('approach','助走・攻撃ラインを表示','攻撃の局面で各アタッカーの打点とテンポを表示')}${tg('check','ポジショナルフォールトを判定','反則の組み合わせを赤い点線で表示')}${tg('zones','ゾーン番号と区画線')}</div>
+  <div class="sec"><h3>凡例</h3><div class="card" style="display:grid;gap:6px">
+   <span><b style="color:${YEL}">●</b> 自チーム　<b style="color:${YEL};-webkit-text-stroke:0">◎</b> 自リベロ（紺）　<b style="color:#fff">●</b> 相手　<b style="color:${RED}">●</b> 相手リベロ</span>
+   <span>右上の小さな丸 … ボールを上げるセッター</span><span>点線矢印 … 助走と打点、細線 … セッターからのトス</span></div></div>`;
+ }
+}
+function renderBoard(){renderFloor();renderDraws();renderTokens();renderOverlay();renderViewbar();renderCheck();}
+function renderAll(){$('#docName').value=doc.name;renderTools();renderBoard();renderFrames();renderPanel();updUndo();}
+
+/* ---------- 操作 ---------- */
+function toWorld(e){const m=world.getScreenCTM().inverse();const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(m);return[r2(p.x),r2(p.y)];}
+const clampP=p=>[r2(Math.max(-2.8,Math.min(20.8,p[0]))),r2(Math.max(-1.8,Math.min(10.8,p[1])))];
+let drag=null,drawing=null,erasing=false,playing=null;
+svg.addEventListener('pointerdown',e=>{
+ if(playing||e.button>0)return;const p=toWorld(e),t=ui.tool;
+ if(t==='select'){
+  const tok=e.target.closest('[data-tok]');
+  if(tok){const id=tok.dataset.tok,cur=F().pos[id];drag={kind:'tok',id,off:[p[0]-cur[0],p[1]-cur[1]],moved:false};push();svg.setPointerCapture(e.pointerId);return;}
+  const dr=e.target.closest('[data-draw]');
+  if(dr){drag={kind:'draw',i:+dr.dataset.draw,last:p,moved:false};push();svg.setPointerCapture(e.pointerId);}
+  return;
+ }
+ if(t==='erase'){push();erasing={hit:false};eraseAt(e);return;}
+ if(t==='text'){textDialog(p);return;}
+ svg.setPointerCapture(e.pointerId);
+ drawing=t==='pen'?{t,pts:[p],c:ui.color,dash:ui.dash}:{t,a:p,b:p,c:ui.color,dash:ui.dash};
+});
+svg.addEventListener('pointermove',e=>{
+ if(drag){const p=toWorld(e);drag.moved=true;const Fr=F();
+  if(drag.kind==='tok'){Fr.pos[drag.id]=clampP([p[0]-drag.off[0],p[1]-drag.off[1]]);
+   const g=svg.querySelector(`[data-tok="${drag.id}"]`);if(g)g.setAttribute('transform',`translate(${Fr.pos[drag.id][0]} ${Fr.pos[drag.id][1]})${drag.id==='ball'?'':` rotate(${R()})`}`);
+   renderOverlay();}
+  else{const d=Fr.draws[drag.i],dx=p[0]-drag.last[0],dy=p[1]-drag.last[1];drag.last=p;const mv=q=>[r2(q[0]+dx),r2(q[1]+dy)];
+   if(d.pts)d.pts=d.pts.map(mv);if(d.a){d.a=mv(d.a);d.b=mv(d.b);}if(d.p)d.p=mv(d.p);renderDraws();}
+  return;}
+ if(erasing){eraseAt(e);return;}
+ if(drawing){const p=toWorld(e);if(drawing.t==='pen'){const l=drawing.pts[drawing.pts.length-1];if(Math.hypot(p[0]-l[0],p[1]-l[1])>.08)drawing.pts.push(p);}else drawing.b=p;$('#preview').innerHTML=shape(drawing,null);}
+});
+function endPointer(){
+ if(drag){if(!drag.moved){hist.pop();updUndo();}else{renderTokens();renderViewbar();renderCheck();save();}drag=null;}
+ if(erasing){if(!erasing.hit){hist.pop();updUndo();}erasing=false;save();}
+ if(drawing){const d=drawing;drawing=null;$('#preview').innerHTML='';
+  const ok=d.t==='pen'?d.pts.length>2:Math.hypot(d.b[0]-d.a[0],d.b[1]-d.a[1])>.35;
+  if(ok){push();if(d.t==='zone'){d.dash=d.dash||false;}F().draws.push(d);renderDraws();save();}}
+}
+svg.addEventListener('pointerup',endPointer);svg.addEventListener('pointercancel',endPointer);
+function eraseAt(e){const el=document.elementFromPoint(e.clientX,e.clientY);const d=el&&el.closest&&el.closest('[data-draw]');if(d){F().draws.splice(+d.dataset.draw,1);erasing.hit=true;renderDraws();}}
+
+function setFrame(i){doc.cur=Math.max(0,Math.min(doc.frames.length-1,i));renderBoard();renderFrames();if(ui.tab==='set')renderPanel();save();}
+function autoCur(){push();applyAuto(F());renderBoard();renderFrames();renderPanel();save();}
+
+$('#tools').addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.tool){ui.tool=b.dataset.tool;}
+ else if(b.dataset.color){ui.color=b.dataset.color;if(ui.tool==='select'||ui.tool==='erase')ui.tool='arrow';}
+ else if(b.dataset.dash){ui.dash=!ui.dash;}
+ else if(b.dataset.clear){if(!F().draws.length)return toast('消去する描画はありません');
+  confirmM('描画を全消去','このフレームの矢印・ペン・文字をすべて消去します。選手の位置はそのままです。','消去',()=>{push();F().draws=[];renderDraws();save();});}
+ renderTools();save();
+});
+$('#viewbar').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.view)ui.view=b.dataset.view;if(b.dataset.orient)ui.vertical=b.dataset.orient==='v';renderBoard();save();});
+$('#frames').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.id==='playBtn')return play();
+ if(playing)stop();
+ if(b.dataset.frame!=null)return setFrame(+b.dataset.frame);
+ if(b.dataset.fact==='dup'){push();const n=clone(F());n.note='';doc.frames.splice(doc.cur+1,0,n);setFrame(doc.cur+1);toast(`フレーム ${doc.cur+1} を追加しました。選手を動かして次の動きを作ります`);}
+ if(b.dataset.fact==='del'&&doc.frames.length>1){push();doc.frames.splice(doc.cur,1);setFrame(Math.min(doc.cur,doc.frames.length-1));}
+});
+$('#frames').addEventListener('change',e=>{if(e.target.id==='speed')ui.speed=+e.target.value;if(e.target.id==='loop')ui.loop=e.target.checked;save();});
+$('#tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ui.tab=b.dataset.tab;renderPanel();save();});
+const pb=$('#pbody');
+pb.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b)return;const Fr=F();
+ if(b.dataset.phase){push();Fr.phase=b.dataset.phase;applyAuto(Fr);renderBoard();renderFrames();renderPanel();save();return;}
+ if(b.dataset.rot){push();Fr.rot[b.dataset.rot]=+b.dataset.k;applyAuto(Fr);renderBoard();renderPanel();save();return;}
+ if(b.dataset.label){ui.label=b.dataset.label;renderTokens();renderPanel();save();return;}
+ const a=b.dataset.act;
+ if(a==='rotate'||a==='rotateOpp'){push();const tk=a==='rotate'?'own':'opp';Fr.rot[tk]=(Fr.rot[tk]+1)%6;applyAuto(Fr);renderBoard();renderPanel();save();toast(`${tk==='own'?'自チーム':'相手'}をローテーション ${Fr.rot[tk]+1} に回しました`);}
+ if(a==='auto'){autoCur();toast('この局面の基本配置に戻しました');}
+ if(a==='next'){push();const n={rot:clone(Fr.rot),phase:NEXT_PHASE[Fr.phase],pos:{},draws:[],note:''};applyAuto(n);doc.frames.splice(doc.cur+1,0,n);setFrame(doc.cur+1);renderPanel();toast(`${PHASES[Fr.phase]} → ${PHASES[n.phase]} のフレームを追加しました。▶で再生できます`);}
+ if(a==='std51'||a==='std42'){push();const r=a==='std51'?['S','OH','MB','OP','OH','MB']:['S','OH','MB','S','OH','MB'];
+  ['own'].forEach(tk=>doc.teams[tk].players.forEach((p,i)=>p.role=r[i]));doc.settings.system=a==='std51'?'5-1':'4-2';applyAuto(Fr);renderAll();save();}
+});
+pb.addEventListener('change',e=>{
+ const t=e.target,Fr=F();
+ if(t.dataset.s){push();const v=t.value;doc.settings[t.dataset.s]=/^\d+$/.test(v)?+v:v;applyAuto(Fr);renderBoard();renderPanel();save();return;}
+ if(t.dataset.m){push();const[tk,i,f]=t.dataset.m.split('|');const T=doc.teams[tk];const o=i==='L'?T.libero:T.players[+i];o[f]=f==='num'?t.value.trim()||'?':t.value.trim();
+  if(f==='role')applyAuto(Fr);renderBoard();save();return;}
+ if(t.dataset.uselib){push();doc.teams[t.dataset.uselib].useLib=t.checked;applyAuto(Fr);renderBoard();save();return;}
+ if(t.dataset.tname){push();doc.teams[t.dataset.tname].name=t.value.trim()||'チーム';renderFloor();save();return;}
+ if(t.dataset.u){ui[t.dataset.u]=t.checked;renderBoard();save();return;}
+});
+pb.addEventListener('input',e=>{if(e.target.id==='note'){F().note=e.target.value;save();}});
+$('#docName').addEventListener('change',e=>{doc.name=e.target.value.trim()||'無題の作戦';save();});
+$('#undoBtn').onclick=undo;$('#redoBtn').onclick=redoF;
+
+/* ---------- 再生 ---------- */
+function stop(){if(playing){cancelAnimationFrame(playing.raf);clearTimeout(playing.to);}playing=null;renderBoard();renderFrames();}
+function play(){
+ if(playing)return stop();
+ if(doc.frames.length<2)return toast('フレームを2つ以上作ると動きを再生できます（＋ボタン）');
+ let i=doc.cur>=doc.frames.length-1?0:doc.cur;doc.cur=i;playing={};renderBoard();renderFrames();
+ const step=()=>{
+  if(!playing)return;
+  if(i>=doc.frames.length-1){if(ui.loop){i=0;doc.cur=0;renderBoard();renderFrames();playing.to=setTimeout(step,600/ui.speed);return;}return stop();}
+  const A=doc.frames[i],B=doc.frames[i+1],t0=performance.now(),D=1300/ui.speed;
+  renderDraws(A);
+  const tick=now=>{if(!playing)return;const t=Math.min(1,(now-t0)/D),k=t<.5?2*t*t:1-(-2*t+2)**2/2,pos={};
+   for(const id in B.pos){const a=A.pos[id]||B.pos[id],b=B.pos[id];pos[id]=[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k];}
+   renderTokens(B,pos);renderOverlay(B,pos);
+   if(t<1)playing.raf=requestAnimationFrame(tick);else{i++;doc.cur=i;renderDraws(B);renderViewbar();renderFrames();playing.to=setTimeout(step,450/ui.speed);}};
+  playing.raf=requestAnimationFrame(tick);
+ };
+ step();
+}
+
+/* ---------- モーダル ---------- */
+function modal(title,body,btns){
+ $('#mTitle').textContent=title;$('#mBody').innerHTML=body;const ft=$('#mFoot');ft.innerHTML='';
+ (btns||[{l:'閉じる'}]).forEach(b=>{const el=document.createElement('button');el.className='btn '+(b.c||'');el.textContent=b.l;el.onclick=()=>{if(b.fn&&b.fn()===false)return;closeM();};ft.appendChild(el);});
+ $('#modal').hidden=false;setTimeout(()=>{const f=$('#mBody input');if(f)f.focus();},30);
+}
+const closeM=()=>{$('#modal').hidden=true;};
+$('#modal').addEventListener('pointerdown',e=>{if(e.target.id==='modal')closeM();});
+function confirmM(t,m,ok,fn){modal(t,`<p>${esc(m)}</p>`,[{l:'キャンセル',c:'ghost'},{l:ok,c:'pri',fn}]);}
+function textDialog(p){
+ modal('文字を配置',`<label class="f">テキスト<input type="text" id="tIn" maxlength="30" placeholder="例：ストレート締める"></label><div class="seg" style="margin-top:10px" id="tSize"><button data-s=".4">小</button><button data-s=".55" class="on">中</button><button data-s=".8">大</button></div>`,
+ [{l:'キャンセル',c:'ghost'},{l:'配置',c:'pri',fn:()=>{const v=$('#tIn').value.trim();if(!v)return;const s=+$('#tSize .on').dataset.s;push();F().draws.push({t:'text',p,txt:v,s,c:ui.color});renderDraws();save();}}]);
+ $('#tSize').onclick=e=>{const b=e.target.closest('button');if(!b)return;$('#tSize').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));};
+ $('#tIn').onkeydown=e=>{if(e.key==='Enter'){$('#mFoot .pri').click();}};
+}
+let toastT=0;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
+
+/* ---------- ライブラリ ---------- */
+const CATS=['サーブレシーブ','サーブ','ディフェンス','攻撃','セットプレー','相手分析','その他'];
+const getLib=()=>store.get('vbtb.lib',[]);
+function openLib(){
+ const lib=getLib();
+ modal('作戦ライブラリ',`<div class="grid2"><label class="f">作戦名<input type="text" id="lName" value="${esc(doc.name)}" maxlength="40"></label><label class="f">分類<select id="lCat">${CATS.map(c=>`<option ${doc.cat===c?'selected':''}>${c}</option>`).join('')}</select></label></div>
+ <div class="btnrow" style="margin-top:10px"><button class="btn pri" id="lSave">${ico('save')}この作戦を保存</button><button class="btn" id="lNew">${ico('plus')}新規作成</button></div>
+ <div style="margin-top:14px"><input type="text" id="lQ" placeholder="保存済みの作戦を検索" aria-label="検索"></div><ul class="lib" id="lList"></ul>
+ <div class="btnrow" style="margin-top:12px"><button class="btn" id="lImp">JSONを読み込む</button><button class="btn" id="lExpAll" ${lib.length?'':'disabled'}>すべてJSONで書き出し</button></div>
+ <p class="hint">保存データはこの端末のブラウザ内に保管されます。別の端末へ移すときはJSONで書き出してください。</p>`);
+ const list=()=>{const q=$('#lQ').value.trim();const L=getLib().filter(x=>!q||x.name.includes(q)||x.cat.includes(q)).sort((a,b)=>b.t-a.t);
+  $('#lList').innerHTML=L.length?L.map(x=>`<li><div class="t"><b>${esc(x.name)}</b><small>${esc(x.cat)}・${x.doc.frames.length}フレーム・${new Date(x.t).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})}</small></div><button class="btn" data-load="${x.id}">開く</button><button class="btn ic" data-rm="${x.id}" aria-label="削除">${ico('trash')}</button></li>`).join(''):'<li class="empty">まだ保存された作戦はありません。<br>上の「この作戦を保存」で登録できます。</li>';};
+ list();$('#lQ').oninput=list;
+ $('#lSave').onclick=()=>{doc.name=$('#lName').value.trim()||'無題の作戦';doc.cat=$('#lCat').value;const L=getLib();let x=L.find(v=>v.id===ui.libId&&v.name===doc.name);
+  if(!x){x={id:'p'+Date.now().toString(36)};L.push(x);ui.libId=x.id;}Object.assign(x,{name:doc.name,cat:doc.cat,t:Date.now(),doc:clone(doc)});store.set('vbtb.lib',L);$('#docName').value=doc.name;save();list();toast(`「${doc.name}」を保存しました`);};
+ $('#lNew').onclick=()=>{push();const keep=clone(doc.teams);doc=newDoc();doc.teams=keep;applyAuto(doc.frames[0]);ui.libId=null;closeM();renderAll();save();toast('新しい作戦を作成しました（メンバーは引き継ぎ）');};
+ $('#lList').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.load){const x=getLib().find(v=>v.id===b.dataset.load);if(x){push();doc=clone(x.doc);ui.libId=x.id;closeM();renderAll();save();toast(`「${x.name}」を開きました`);}}
+  if(b.dataset.rm){const L=getLib().filter(v=>v.id!==b.dataset.rm);store.set('vbtb.lib',L);list();toast('削除しました');}};
+ $('#lImp').onclick=()=>$('#fileIn').click();
+ $('#lExpAll').onclick=()=>download(new Blob([JSON.stringify({app:'vb-tactics',type:'library',items:getLib()},null,1)],{type:'application/json'}),'vb-tactics-library.json');
+}
+$('#libBtn').onclick=openLib;
+$('#fileIn').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+ try{const j=JSON.parse(await f.text());
+  if(j.type==='library'&&Array.isArray(j.items)){const L=getLib();j.items.forEach(x=>{if(x&&x.doc&&x.doc.frames)L.push({...x,id:'p'+Math.random().toString(36).slice(2,9)});});store.set('vbtb.lib',L);closeM();toast(`${j.items.length}件の作戦をライブラリに追加しました`);}
+  else{const d=j.doc||j;if(!d.frames||!d.teams)throw 0;push();doc=d;doc.cur=0;ui.libId=null;closeM();renderAll();save();toast(`「${doc.name}」を読み込みました`);}
+ }catch(err){toast('読み込めませんでした。VB Tacticsで書き出したJSONを選んでください');}};
+
+/* ---------- 書き出し ---------- */
+function download(blob,name){try{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},800);}catch(e){toast('この環境ではダウンロードできません');}}
+function svgString(){
+ const c=svg.cloneNode(true);const vb=svg.getAttribute('viewBox').split(' ').map(Number);
+ c.setAttribute('width',vb[2]*80);c.setAttribute('height',vb[3]*80);c.querySelector('#preview')?.remove();
+ return new XMLSerializer().serializeToString(c);
+}
+function exportPNG(){
+ const s=svgString(),img=new Image(),vb=svg.getAttribute('viewBox').split(' ').map(Number);
+ img.onload=()=>{const cv=document.createElement('canvas');cv.width=vb[2]*80;cv.height=vb[3]*80+(F().note?90:0);const x=cv.getContext('2d');x.fillStyle=NAVY;x.fillRect(0,0,cv.width,cv.height);x.drawImage(img,0,0);
+  if(F().note){x.fillStyle=YEL;x.font='bold 30px sans-serif';x.fillText(`${doc.name}（${doc.cur+1}）`,24,vb[3]*80+38);x.fillStyle='#fff';x.font='26px sans-serif';x.fillText(F().note.slice(0,60),24,vb[3]*80+74);}
+  cv.toBlob(b=>download(b,`${doc.name}_${doc.cur+1}.png`));};
+ img.onerror=()=>toast('画像の作成に失敗しました');
+ img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
+}
+$('#expBtn').onclick=()=>modal('書き出し',`<div class="btnrow" style="flex-direction:column"><button class="btn" id="xPng">現在のフレームをPNG画像で保存</button><button class="btn" id="xJson">作戦データ（JSON）を保存</button><button class="btn" id="xCopy">作戦データをクリップボードへコピー</button><button class="btn" id="xPrint">印刷する</button></div><p class="hint">PNGはLINEやClassroomでの共有、JSONは別の端末での読み込みに使えます。</p>`);
+document.addEventListener('click',e=>{
+ const id=e.target.closest('button')?.id;
+ if(id==='xPng'){closeM();exportPNG();}
+ if(id==='xJson'){closeM();download(new Blob([JSON.stringify({app:'vb-tactics',doc},null,1)],{type:'application/json'}),`${doc.name}.json`);}
+ if(id==='xCopy'){navigator.clipboard?.writeText(JSON.stringify({app:'vb-tactics',doc})).then(()=>toast('コピーしました'),()=>toast('コピーできませんでした'));closeM();}
+ if(id==='xPrint'){closeM();try{window.print();}catch(err){toast('印刷できませんでした');}}
+});
+
+/* ---------- ヘルプ・全画面・PWA ---------- */
+$('#helpBtn').onclick=()=>modal('使い方',`<div class="help">
+<h4>1. メンバーと並びを登録</h4><p>「メンバー」タブで背番号・名前・役割を入力。①〜⑥はローテ1でのポジション1〜6です。</p>
+<h4>2. 局面とローテーションを選ぶ</h4><p>「配置・戦術」タブで局面（サーブレシーブ／サーブ／ディフェンス／攻撃）とローテを選ぶと、レセプション人数・ディフェンスシステム・攻撃方向・ミドルのテンポに合わせて基本配置が自動で並びます。</p>
+<h4>3. 駒を動かす・描き込む</h4><ul><li><kbd>V</kbd> 選択：選手・ボール・描いた線をドラッグ</li><li><kbd>P</kbd> ペン／<kbd>A</kbd> 矢印（動き）／<kbd>B</kbd> ボール軌道／<kbd>Z</kbd> エリア／<kbd>T</kbd> 文字／<kbd>E</kbd> 消しゴム</li></ul>
+<h4>4. 動きをアニメーションに</h4><p>＋でフレームを複製して選手を動かすか、「次の局面を追加」で自動生成。<kbd>Space</kbd> または ▶ で再生します。</p>
+<h4>5. 反則チェック</h4><p>サーブレシーブ／サーブの局面では、前後・左右の位置関係（ポジショナルフォールト）を自動判定し、反則の組み合わせを赤い点線で示します。</p>
+<h4>ショートカット</h4><p><kbd>Ctrl</kbd>+<kbd>Z</kbd> 元に戻す　<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> やり直し　<kbd>←</kbd><kbd>→</kbd> フレーム移動　<kbd>R</kbd> ローテを回す</p>
+<h4>ホーム画面に追加（PWA）</h4><p>iPad／iPhone：Safariの共有ボタン →「ホーム画面に追加」。Android／PC：Chromeのインストールボタン。一度開けば体育館などオフラインでも使えます。</p></div>`);
+$('#fsBtn').onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>toast('全画面にできませんでした'));}catch(e){toast('全画面にできませんでした');}};
+let deferred=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;$('#installBtn').hidden=false;});
+$('#installBtn').onclick=async()=>{if(!deferred)return;deferred.prompt();try{await deferred.userChoice;}catch(e){}deferred=null;$('#installBtn').hidden=true;};
+window.addEventListener('appinstalled',()=>{$('#installBtn').hidden=true;toast('インストールしました');});
+if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>{try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}});}
+
+document.addEventListener('keydown',e=>{
+ if(e.target.matches('input,textarea,select'))return;
+ if(!$('#modal').hidden){if(e.key==='Escape')closeM();return;}
+ const k=e.key.toLowerCase();
+ if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redoF():undo();return;}
+ if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redoF();return;}
+ if(e.ctrlKey||e.metaKey||e.altKey)return;
+ const T={v:'select',p:'pen',a:'arrow',b:'ball',z:'zone',t:'text',e:'erase'};
+ if(T[k]){ui.tool=T[k];renderTools();save();return;}
+ if(e.key===' '){e.preventDefault();play();return;}
+ if(e.key==='ArrowRight'){if(playing)stop();setFrame(doc.cur+1);}
+ if(e.key==='ArrowLeft'){if(playing)stop();setFrame(doc.cur-1);}
+ if(k==='r'){push();F().rot.own=(F().rot.own+1)%6;applyAuto(F());renderBoard();renderPanel();save();}
+});
+renderAll();
+}
+</script>
+</body>
+</html>
